@@ -25,21 +25,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-[#E8F5E9]/95 border-b border-[#A5D6A7] transition-all">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-[#E8F5E9]/95 border-b border-[#A5D6A7] transition-all w-full overflow-hidden">
       {/* Top Announcement Strip with Practice Schedule & Direct Contacts */}
-      <div className="bg-[#1B5E20] text-[#E8F5E9] text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#66BB6A]/20 text-[#66BB6A] font-bold text-[10px] sm:text-[11px] border border-[#66BB6A]/40 shrink-0">
+      <div className="bg-[#1B5E20] text-[#E8F5E9] text-xs py-1.5 px-3 sm:px-6 border-b border-white/10 w-full">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          {/* Schedule status & location */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#66BB6A]/20 text-[#66BB6A] font-bold text-[10px] sm:text-[11px] border border-[#66BB6A]/40 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#66BB6A] animate-ping" />
-              Do, Fr & Sa Geöffnet
+              Do, Fr & Sa
             </span>
-            <span className="text-[#E8F5E9]/90 text-[10px] sm:text-xs truncate">
-              Do 18–21 • Fr 17–20 • Sa 08–14 • Hauptstrasse 19, Biberist
+            <span className="text-[#E8F5E9]/90 text-[10px] sm:text-xs truncate hidden sm:inline">
+              Do 18–21 • Fr 17–20 • Sa 08–14 • Hauptstr. 19, Biberist
+            </span>
+            <span className="text-[#E8F5E9]/90 text-[10px] truncate sm:hidden">
+              Hauptstr. 19, Biberist
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 text-[#E8F5E9]/90 text-[11px] sm:text-xs shrink-0">
+          {/* Direct Contacts */}
+          <div className="flex items-center gap-2.5 sm:gap-4 text-[#E8F5E9]/90 text-[11px] sm:text-xs shrink-0">
             <a 
               href="mailto:info@lebenswerk.praxismail.ch"
               className="hidden lg:inline-flex items-center gap-1 text-[#E8F5E9]/90 hover:text-white transition-colors"
@@ -48,17 +53,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </a>
             <a 
               href="tel:0764580442" 
-              className="inline-flex items-center gap-1 text-[#66BB6A] hover:text-white font-bold transition-colors"
+              className="inline-flex items-center gap-1 text-[#66BB6A] hover:text-white font-bold transition-colors text-[11px] sm:text-xs"
             >
-              <Phone className="w-3.5 h-3.5" /> 076 458 04 42
+              <Phone className="w-3.5 h-3.5 shrink-0" /> 076 458 04 42
             </a>
           </div>
         </div>
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
+        <div className="flex items-center justify-between h-14 sm:h-18 md:h-20 gap-2">
           
           {/* Brand Logo - Official Lebenswerk Logo + Text */}
           <div 
@@ -67,9 +72,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
               setIsMobileMenuOpen(false);
             }} 
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0 min-w-0"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0"
           >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl overflow-hidden border border-[#A5D6A7] bg-white shadow-xs flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl overflow-hidden border border-[#A5D6A7] bg-white shadow-xs flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform shrink-0">
               <img 
                 src="/src/assets/images/lebenswerk_logo_1787647029212.jpg" 
                 alt="LEBENSWERK Logo" 
@@ -78,10 +83,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </div>
             <div className="min-w-0">
-              <span className="font-display font-extrabold text-xl sm:text-2xl lg:text-3xl tracking-tighter text-[#1B5E20] block leading-none truncate">
+              <span className="font-display font-extrabold text-base sm:text-2xl lg:text-3xl tracking-tighter text-[#1B5E20] block leading-none truncate">
                 LEBENSWERK<span className="text-[#66BB6A]">.</span>
               </span>
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#1B5E20]/70 block mt-0.5 truncate">
+              <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#1B5E20]/70 block mt-0.5 truncate">
                 Physiotherapie Biberist
               </span>
             </div>
@@ -111,10 +116,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-book-now-cta"
               onClick={onOpenBooking}
-              className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 lg:px-6 py-2 sm:py-2.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer transform hover:scale-[1.02] shrink-0"
+              className="inline-flex items-center gap-1 sm:gap-2 px-2.5 sm:px-5 lg:px-6 py-1.5 sm:py-2.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-extrabold text-[11px] sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer transform hover:scale-[1.02] shrink-0"
             >
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#66BB6A]" />
-              <span>Kontakt & Termin</span>
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#66BB6A] shrink-0" />
+              <span className="hidden xs:inline sm:inline">Kontakt & Termin</span>
+              <span className="xs:hidden sm:hidden">Termin</span>
             </button>
 
             {/* Mobile Menu Hamburger Toggle */}
@@ -123,12 +129,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label={isMobileMenuOpen ? "Menü schliessen" : "Menü öffnen"}
-              className="md:hidden p-2 rounded-xl bg-white border border-[#A5D6A7] text-[#1B5E20] hover:bg-[#E8F5E9] transition-colors cursor-pointer"
+              className="md:hidden p-1.5 sm:p-2 rounded-xl bg-white border border-[#A5D6A7] text-[#1B5E20] hover:bg-[#E8F5E9] transition-colors cursor-pointer shrink-0"
             >
               {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
 
@@ -150,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Praxis Hauptstrasse 19, Biberist
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-[#1B5E20] text-white text-[10px]">
-                  SRK / KVG
+                  Biberist & Mobil
                 </span>
               </div>
               <p className="text-[11px] text-[#1B5E20]/80">

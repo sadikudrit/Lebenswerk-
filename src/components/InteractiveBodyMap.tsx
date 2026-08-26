@@ -224,11 +224,11 @@ export const InteractiveBodyMap: React.FC<InteractiveBodyMapProps> = ({
             </div>
 
             {/* Bottom Quick Callout */}
-            <div className="mt-6 pt-4 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <HelpCircle className="w-3.5 h-3.5 text-teal-600" /> Free phone triage if unsure: (555) 321-7890
-              </span>
-              <span className="text-teal-800 font-semibold">1-on-1 Certified Physiotherapist</span>
+            <div className="mt-6 pt-4 border-t border-[#A5D6A7]/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-[#1B5E20]/80">
+              <a href="tel:0764580442" className="flex items-center gap-1.5 font-bold hover:text-[#66BB6A] transition-colors">
+                <HelpCircle className="w-3.5 h-3.5 text-[#66BB6A] shrink-0" /> Telefonische Auskunft: 076 458 04 42
+              </a>
+              <span className="text-[#1B5E20] font-semibold text-[11px] sm:text-xs">Dipl. Physiotherapeut Vigan Musliu</span>
             </div>
           </div>
 
