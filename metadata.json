@@ -1,0 +1,8 @@
+{
+  "name": "LEBENSWERK | Physiotherapie Biberist & Hausbesuche",
+  "description": "LEBENSWERK Physiotherapie Biberist - Praxis an der Hauptstrasse 19, 4562 Biberist und mobile Hausbesuche in der Region Solothurn. Dipl. Physiotherapeut Vigan Musliu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
