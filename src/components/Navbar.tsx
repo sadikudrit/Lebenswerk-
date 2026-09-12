@@ -11,8 +11,12 @@ import {
   X,
   ShieldCheck,
   Building,
-  Home
+  Home,
+  Edit3,
+  Lock
 } from 'lucide-react';
+import { brandLogo } from '../assets';
+import { useSiteContent } from '../context/SiteContentContext';
 
 interface NavbarProps {
   onOpenBooking: () => void;
@@ -23,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBooking,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const { content, isAuthenticated, openCmsModal, openLoginModal } = useSiteContent();
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md bg-[#E8F5E9]/95 border-b border-[#A5D6A7] transition-all w-full overflow-hidden">
@@ -36,27 +41,46 @@ export const Navbar: React.FC<NavbarProps> = ({
               Do, Fr & Sa
             </span>
             <span className="text-[#E8F5E9]/90 text-[10px] sm:text-xs truncate hidden sm:inline">
-              Do 18–21 • Fr 17–20 • Sa 08–14 • Hauptstr. 19, Biberist
+              Do {content.contact.hoursThursday} • Fr {content.contact.hoursFriday} • Sa {content.contact.hoursSaturday} • {content.contact.street}, {content.contact.zipCity.split(' ')[1] || 'Biberist'}
             </span>
             <span className="text-[#E8F5E9]/90 text-[10px] truncate sm:hidden">
-              Hauptstr. 19, Biberist
+              {content.contact.street}, {content.contact.zipCity.split(' ')[1] || 'Biberist'}
             </span>
           </div>
 
-          {/* Direct Contacts */}
+          {/* Direct Contacts & Doctor Login */}
           <div className="flex items-center gap-2.5 sm:gap-4 text-[#E8F5E9]/90 text-[11px] sm:text-xs shrink-0">
             <a 
-              href="mailto:info@lebenswerk.praxismail.ch"
+              href={`mailto:${content.contact.email}`}
               className="hidden lg:inline-flex items-center gap-1 text-[#E8F5E9]/90 hover:text-white transition-colors"
             >
-              <Mail className="w-3.5 h-3.5 text-[#66BB6A]" /> info@lebenswerk.praxismail.ch
+              <Mail className="w-3.5 h-3.5 text-[#66BB6A]" /> {content.contact.email}
             </a>
             <a 
-              href="tel:0764580442" 
+              href={`tel:${content.contact.phoneRaw}`} 
               className="inline-flex items-center gap-1 text-[#66BB6A] hover:text-white font-bold transition-colors text-[11px] sm:text-xs"
             >
-              <Phone className="w-3.5 h-3.5 shrink-0" /> 076 458 04 42
+              <Phone className="w-3.5 h-3.5 shrink-0" /> {content.contact.phoneDisplay}
             </a>
+
+            {/* Subtle Doctor CMS Access in top bar */}
+            <button
+              onClick={() => (isAuthenticated ? openCmsModal('hero') : openLoginModal())}
+              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md bg-black/20 hover:bg-black/40 text-emerald-200 hover:text-white transition-colors cursor-pointer"
+              title="Praxis-Editor für den Arzt"
+            >
+              {isAuthenticated ? (
+                <>
+                  <Edit3 className="w-3 h-3 text-[#66BB6A]" />
+                  <span>Editor</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 text-emerald-300/70" />
+                  <span>Arzt-Login</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -76,10 +100,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl overflow-hidden border border-[#A5D6A7] bg-white shadow-xs flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform shrink-0">
               <img 
-                src="/src/assets/images/lebenswerk_logo_1787647029212.jpg" 
+                src={brandLogo} 
                 alt="LEBENSWERK Logo" 
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/lebenswerk_logo.jpg';
+                }}
               />
             </div>
             <div className="min-w-0">
@@ -153,25 +180,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center justify-between font-bold">
                 <span className="flex items-center gap-1.5">
                   <Building className="w-4 h-4 text-[#66BB6A]" />
-                  Praxis Hauptstrasse 19, Biberist
+                  Praxis {content.contact.street}, {content.contact.zipCity.split(' ')[1] || 'Biberist'}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-[#1B5E20] text-white text-[10px]">
                   Biberist & Mobil
                 </span>
               </div>
               <p className="text-[11px] text-[#1B5E20]/80">
-                <strong>Öffnungszeiten:</strong> Do 18:00–21:00 • Fr 17:00–20:00 • Sa 08:00–14:00
+                <strong>Öffnungszeiten:</strong> Do {content.contact.hoursThursday} • Fr {content.contact.hoursFriday} • Sa {content.contact.hoursSaturday}
               </p>
             </div>
 
             {/* Direct Quick Action Buttons */}
             <div className="grid grid-cols-2 gap-2">
               <a
-                href="tel:0764580442"
+                href={`tel:${content.contact.phoneRaw}`}
                 className="py-3 px-3 rounded-xl bg-[#1B5E20] text-[#E8F5E9] font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm text-center"
               >
                 <Phone className="w-4 h-4 text-[#66BB6A]" />
-                <span>076 458 04 42</span>
+                <span>{content.contact.phoneDisplay}</span>
               </a>
 
               <a
@@ -192,14 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block py-2.5 px-3 rounded-xl text-xs font-bold text-[#1B5E20] hover:bg-[#E8F5E9]"
               >
-                👨‍⚕️ Über Vigan Musliu (Dipl. Physiotherapeut)
-              </a>
-              <a
-                href="#services"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-2.5 px-3 rounded-xl text-xs font-bold text-[#1B5E20] hover:bg-[#E8F5E9]"
-              >
-                🩺 Behandlungsangebot & Domizilbehandlung
+                👨‍⚕️ Über {content.doctor.name} ({content.doctor.title.split('&')[0] || 'Dipl. Physiotherapeut'})
               </a>
               <a
                 href="#contact"
@@ -210,6 +230,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             </div>
 
+            {/* Doctor CMS Login / Editor in Mobile Drawer */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (isAuthenticated) {
+                  openCmsModal('hero');
+                } else {
+                  openLoginModal();
+                }
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-300 transition-colors cursor-pointer"
+            >
+              {isAuthenticated ? (
+                <>
+                  <Edit3 className="w-4 h-4 text-emerald-600" />
+                  <span>Website-Texte bearbeiten (CMS)</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4 text-slate-500" />
+                  <span>Arzt-Login (Inhalte bearbeiten)</span>
+                </>
+              )}
+            </button>
+
             {/* Schedule Button inside Mobile Menu */}
             <button
               type="button"
@@ -217,7 +263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setIsMobileMenuOpen(false);
                 onOpenBooking();
               }}
-              className="w-full py-3.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-bold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
+              className="w-full py-3.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-bold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer mt-1"
             >
               <Calendar className="w-4 h-4 text-[#66BB6A]" />
               <span>Kontakt & Terminanfrage</span>

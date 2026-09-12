@@ -4,8 +4,10 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const isGithubPages = process.env.GITHUB_ACTIONS === 'true' && !process.env.VERCEL;
+
   return {
-    base: '/Lebenswerk-/'
+    base: process.env.BASE_PATH || (isGithubPages ? '/Lebenswerk-/' : '/'),
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

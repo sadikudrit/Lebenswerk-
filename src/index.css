@@ -68,10 +68,41 @@
   scrollbar-width: none;
 }
 
-@supports (padding: max(0px)) {
-  .safe-bottom {
-    padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 22s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-reverse {
+  display: flex;
+  width: max-content;
+  animation: marquee-reverse 22s linear infinite;
+  will-change: transform;
+}
+
 
 

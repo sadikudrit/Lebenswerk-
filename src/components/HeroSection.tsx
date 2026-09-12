@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { 
   Calendar, 
   CheckCircle2, 
@@ -12,9 +13,13 @@ import {
   Building, 
   Sparkles, 
   Mail,
-  ExternalLink
+  ExternalLink,
+  HeartPulse
 } from 'lucide-react';
 import { Service } from '../types';
+import { brandLogo } from '../assets';
+import { useSiteContent } from '../context/SiteContentContext';
+import { InlineEditButton } from './InlineEditButton';
 
 interface HeroSectionProps {
   services: Service[];
@@ -39,71 +44,154 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   services,
   onOpenBooking,
 }) => {
+  const { content } = useSiteContent();
   const [selectedLocation, setSelectedLocation] = useState<'practice' | 'home'>('practice');
   const [selectedDate, setSelectedDate] = useState<string>(getNextAvailableWorkingDate());
 
   return (
     <section id="about" className="relative pt-8 sm:pt-12 pb-16 sm:pb-24 overflow-hidden bg-[#E8F5E9] border-b border-[#A5D6A7]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      {/* Background Animated Subtle Float Blobs */}
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.08, 1],
+          opacity: [0.35, 0.5, 0.35],
+          x: [0, 15, 0]
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-24 -right-24 w-96 h-96 bg-[#A5D6A7]/40 rounded-full blur-3xl pointer-events-none -z-10" 
+      />
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.12, 1],
+          opacity: [0.3, 0.45, 0.3],
+          y: [0, -20, 0]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-0 -left-20 w-80 h-80 bg-[#66BB6A]/20 rounded-full blur-3xl pointer-events-none -z-10" 
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         
         {/* Asymmetrical Grid */}
         <div className="grid grid-cols-12 gap-6 lg:gap-12 items-center">
           
-          {/* Text Column (7 cols) */}
-          <div className="col-span-12 lg:col-span-7 hero-text-container space-y-4 sm:space-y-6">
+          {/* Text Column (7 cols) with Staggered Motion */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="col-span-12 lg:col-span-7 hero-text-container space-y-4 sm:space-y-6"
+          >
             
-            {/* Tag Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white border border-[#A5D6A7] text-[#1B5E20] text-[11px] sm:text-xs font-bold tracking-wider shadow-xs max-w-full">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#A5D6A7] flex items-center justify-center shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1B5E20]" />
+            {/* Tag Badge with Live Pulsing Green Ring */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white border border-[#A5D6A7] text-[#1B5E20] text-[11px] sm:text-xs font-bold tracking-wider shadow-xs max-w-full"
+            >
+              <span className="relative flex h-3 w-3 items-center justify-center shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#66BB6A] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1B5E20]" />
               </span>
-              <span className="truncate">PRAXIS BIBERIST & HAUSBESUCHE • DO, FR & SA</span>
-            </div>
+              <span className="truncate">{content.hero.badgeText}</span>
+            </motion.div>
 
             {/* Main Display Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold text-[#1B5E20] tracking-tight sm:tracking-tighter leading-[1.1] sm:leading-[0.94] break-words">
-              Gezielte Therapie in der<br />
-              <span className="text-[#66BB6A]">Praxis & Zuhause.</span>
-            </h1>
+            <motion.h1 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold text-[#1B5E20] tracking-tight sm:tracking-tighter leading-[1.1] sm:leading-[0.98] break-words"
+            >
+              {content.hero.headlineMain}<br />
+              <motion.span 
+                className="text-[#66BB6A] inline-block"
+                animate={{ color: ["#66BB6A", "#2E7D32", "#66BB6A"] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {content.hero.headlineHighlight}
+              </motion.span>
+            </motion.h1>
 
-            {/* Organic Description */}
-            <p className="text-base sm:text-lg lg:text-xl text-[#1B5E20]/85 leading-relaxed max-w-2xl font-normal">
-              Individuelle, persönliche und evidenzbasierte Physiotherapie von <strong>Dipl. Physiotherapeut Vigan Musliu</strong>. Praxis an der <strong>Hauptstrasse 19, 4562 Biberist</strong> sowie mobile <strong>Hausbesuche</strong> in der gesamten Region Solothurn & Biberist.
-            </p>
-
-            {/* Schedule Highlights Pill Grid */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#A5D6A7] shadow-xs space-y-2 max-w-xl">
-              <span className="text-xs font-extrabold text-[#1B5E20] uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#66BB6A]" /> Arbeitszeiten & Termine:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold text-[#1B5E20]">
-                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center">
-                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Donnerstag</span>
-                  <span>18:00 – 21:00</span>
-                </div>
-                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center">
-                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Freitag</span>
-                  <span>17:00 – 20:00</span>
-                </div>
-                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center">
-                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Samstag</span>
-                  <span>08:00 – 14:00</span>
-                </div>
-              </div>
+            {/* Organic Description with Inline CMS Trigger */}
+            <div className="relative group">
+              <InlineEditButton section="hero" label="Absätze anpassen" className="mb-2" />
+              <motion.p 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="text-base sm:text-lg lg:text-xl text-[#1B5E20]/85 leading-relaxed max-w-2xl font-normal space-y-2.5"
+              >
+                <span className="block font-medium text-[#1B5E20] whitespace-pre-line">
+                  {content.hero.paragraph1}
+                </span>
+                <span className="block text-sm sm:text-base lg:text-lg text-[#1B5E20]/80 whitespace-pre-line">
+                  {content.hero.paragraph2}
+                </span>
+              </motion.p>
             </div>
 
+            {/* Schedule Highlights Pill Grid with Animated Heartbeat Wave */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#A5D6A7] shadow-xs space-y-2 max-w-xl relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-[#1B5E20] uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#66BB6A]" /> {content.hero.scheduleTitle || 'Arbeitszeiten & Termine:'}
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-bold text-[#2E7D32] bg-[#E8F5E9] px-2 py-0.5 rounded-md border border-[#A5D6A7]">
+                  <motion.span
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="inline-block"
+                  >
+                    <HeartPulse className="w-3 h-3 text-[#1B5E20]" />
+                  </motion.span>
+                  Online buchbar
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold text-[#1B5E20]">
+                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center hover:bg-[#A5D6A7]/30 transition-colors">
+                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Donnerstag</span>
+                  <span>{content.hero.scheduleThursday.replace(/Donnerstag:\s*/i, '').replace(/\s*Uhr/i, '') || '18:00 – 21:00'}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center hover:bg-[#A5D6A7]/30 transition-colors">
+                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Freitag</span>
+                  <span>{content.hero.scheduleFriday.replace(/Freitag:\s*/i, '').replace(/\s*Uhr/i, '') || '17:00 – 20:00'}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#E8F5E9] border border-[#A5D6A7]/60 text-center hover:bg-[#A5D6A7]/30 transition-colors">
+                  <span className="block text-[11px] text-[#1B5E20]/70 font-semibold">Samstag</span>
+                  <span>{content.hero.scheduleSaturday.replace(/Samstag:\s*/i, '').replace(/\s*Uhr/i, '') || '08:00 – 14:00'}</span>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Action Buttons: Schedule Appointment & Google Maps Location */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1 sm:pt-2">
-              <button
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1 sm:pt-2"
+            >
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 id="hero-schedule-appointment-btn"
                 onClick={() => onOpenBooking()}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-[#1B5E20] text-[#E8F5E9] font-extrabold hover:bg-[#1B5E20]/90 transition-all shadow-lg shadow-[#1B5E20]/20 hover:scale-[1.02] transform cursor-pointer flex items-center justify-center gap-2.5 text-sm sm:text-base text-center"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-[#1B5E20] text-[#E8F5E9] font-extrabold hover:bg-[#1B5E20]/90 transition-all shadow-lg shadow-[#1B5E20]/20 cursor-pointer flex items-center justify-center gap-2.5 text-sm sm:text-base text-center"
               >
                 <Calendar className="w-4 h-4 text-[#66BB6A]" />
                 <span>Termin / Frage Senden</span>
-              </button>
+              </motion.button>
 
-              <a
+              <motion.a
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 id="hero-praxis-location-maps-btn"
                 href="https://www.google.com/maps/search/?api=1&query=Hauptstrasse+19+4562+Biberist"
                 target="_blank"
@@ -112,43 +200,75 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               >
                 <MapPin className="w-4 h-4 text-[#1B5E20] group-hover:text-[#66BB6A]" />
                 <span>Hauptstrasse 19 (Google Maps)</span>
-              </a>
-            </div>
+              </motion.a>
+            </motion.div>
 
             {/* Direct Contact Numbers & Coverage */}
-            <div className="pt-3 sm:pt-4 border-t border-[#A5D6A7] flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#1B5E20]">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="pt-3 sm:pt-4 border-t border-[#A5D6A7] flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#1B5E20]"
+            >
               <a 
-                href="tel:0764580442" 
-                className="flex items-center gap-1.5 sm:gap-2 font-bold text-[#1B5E20] hover:text-[#66BB6A] bg-white px-3 sm:px-3.5 py-1.5 rounded-full border border-[#A5D6A7] shadow-xs text-[11px] sm:text-xs"
+                href={`tel:${content.contact.phoneRaw}`} 
+                className="flex items-center gap-1.5 sm:gap-2 font-bold text-[#1B5E20] hover:text-[#66BB6A] bg-white px-3 sm:px-3.5 py-1.5 rounded-full border border-[#A5D6A7] shadow-xs text-[11px] sm:text-xs hover:shadow-sm transition-all"
               >
-                <Phone className="w-3.5 h-3.5 text-[#66BB6A]" /> 076 458 04 42
+                <Phone className="w-3.5 h-3.5 text-[#66BB6A]" /> {content.contact.phoneDisplay}
               </a>
               <a 
-                href="mailto:info@lebenswerk.praxismail.ch" 
-                className="flex items-center gap-1.5 sm:gap-2 font-bold text-[#1B5E20] hover:text-[#66BB6A] bg-white px-3 sm:px-3.5 py-1.5 rounded-full border border-[#A5D6A7] shadow-xs text-[11px] sm:text-xs truncate max-w-full"
+                href={`mailto:${content.contact.email}`} 
+                className="flex items-center gap-1.5 sm:gap-2 font-bold text-[#1B5E20] hover:text-[#66BB6A] bg-white px-3 sm:px-3.5 py-1.5 rounded-full border border-[#A5D6A7] shadow-xs text-[11px] sm:text-xs truncate max-w-full hover:shadow-sm transition-all"
               >
-                <Mail className="w-3.5 h-3.5 text-[#66BB6A] shrink-0" /> <span className="truncate">info@lebenswerk.praxismail.ch</span>
+                <Mail className="w-3.5 h-3.5 text-[#66BB6A] shrink-0" /> <span className="truncate">{content.contact.email}</span>
               </a>
               <span className="flex items-center gap-1.5 text-[#1B5E20] font-bold bg-[#E8F5E9] px-3 sm:px-3.5 py-1.5 rounded-full border border-[#A5D6A7] text-[11px] sm:text-xs">
                 <MapPin className="w-3.5 h-3.5 text-[#66BB6A]" /> Biberist & Hausbesuche
               </span>
-            </div>
+            </motion.div>
 
-          </div>
+          </motion.div>
 
-          {/* Visual Column & Overlap Layout (5 cols) */}
+          {/* Visual Column & Overlap Layout (5 cols) with Floating Animation */}
           <div className="col-span-12 lg:col-span-5 relative mt-4 lg:mt-0">
+            
+            {/* Floating 24/7 Booking Badge at Bottom Right */}
+            <motion.div 
+              animate={{ 
+                y: [0, 8, 0],
+                rotate: [0.5, -0.5, 0.5]
+              }}
+              transition={{ 
+                duration: 5, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                delay: 0.5
+              }}
+              className="absolute -bottom-4 -right-2 sm:-right-4 z-20 bg-white text-[#1B5E20] px-3.5 py-2 rounded-2xl shadow-xl border-2 border-[#A5D6A7] text-xs font-bold flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-[#66BB6A] shrink-0" />
+              <span>Online-Anfrage • 24/7</span>
+            </motion.div>
+
             {/* Main Soft Container */}
-            <div className="w-full bg-white border border-[#A5D6A7] rounded-3xl sm:rounded-[44px] shadow-2xl shadow-[#1B5E20]/10 p-5 sm:p-7 relative overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="w-full bg-white border-2 border-[#A5D6A7] rounded-3xl sm:rounded-[44px] shadow-2xl shadow-[#1B5E20]/10 p-5 sm:p-7 relative overflow-hidden"
+            >
               
               <div className="flex items-center justify-between pb-4 border-b border-[#A5D6A7] mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl overflow-hidden border border-[#A5D6A7] bg-white p-0.5 shrink-0">
                     <img 
-                      src="/src/assets/images/lebenswerk_logo_1787647029212.jpg" 
-                      alt="Logo" 
+                      src={brandLogo} 
+                      alt="LEBENSWERK Logo" 
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/lebenswerk_logo.jpg';
+                      }}
                     />
                   </div>
                   <div>
@@ -156,9 +276,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     <p className="text-xs text-[#1B5E20]/70">Praxis Biberist oder Hausbesuch</p>
                   </div>
                 </div>
-                <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#E8F5E9] text-[#1B5E20] border border-[#A5D6A7] flex items-center justify-center shrink-0">
+                <motion.span 
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#E8F5E9] text-[#1B5E20] border border-[#A5D6A7] flex items-center justify-center shrink-0"
+                >
                   <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-[#66BB6A]" />
-                </span>
+                </motion.span>
               </div>
 
               {/* Location Toggle in Quick Form */}
@@ -166,7 +290,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedLocation('practice')}
-                  className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     selectedLocation === 'practice'
                       ? 'bg-[#1B5E20] text-[#E8F5E9] shadow-sm'
                       : 'text-[#1B5E20] hover:bg-white/60'
@@ -178,7 +302,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedLocation('home')}
-                  className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     selectedLocation === 'home'
                       ? 'bg-[#1B5E20] text-[#E8F5E9] shadow-sm'
                       : 'text-[#1B5E20] hover:bg-white/60'
@@ -203,18 +327,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </div>
                 </div>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   id="hero-find-slots-btn"
                   onClick={() => onOpenBooking(undefined, selectedDate)}
-                  className="w-full py-3.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  className="w-full py-3.5 rounded-full bg-[#1B5E20] hover:bg-[#1B5E20]/90 text-[#E8F5E9] font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Anfrage / Termin jetzt senden</span>
-                  <ArrowRight className="w-4 h-4 text-[#66BB6A]" />
-                </button>
+                  <motion.span
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <ArrowRight className="w-4 h-4 text-[#66BB6A]" />
+                  </motion.span>
+                </motion.button>
               </div>
 
-            </div>
+            </motion.div>
 
           </div>
 

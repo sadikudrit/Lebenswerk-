@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Service, Physiotherapist, Appointment, InquiryType } from '../types';
+import { doctorPhoto, brandLogo } from '../assets';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -223,13 +224,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white border border-[#A5D6A7] p-1 flex items-center justify-center shadow-xs overflow-hidden shrink-0">
               <img 
-                src="/public/doctor_vigan.jpg" 
+                src={doctorPhoto} 
                 alt="Vigan Musliu" 
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-top rounded-xl"
                 onError={(e) => {
-                  // Fallback to logo if image fails
-                  (e.target as HTMLElement).style.display = 'none';
+                  (e.target as HTMLImageElement).src = '/doctor_vigan.jpg';
                 }}
               />
             </div>

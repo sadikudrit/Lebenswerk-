@@ -60,11 +60,11 @@ export function downloadIcsFile(params: {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Apex Physiotherapy Clinic//Appointment Scheduler//EN',
+    'PRODID:-//Lebenswerk Physiotherapie//Terminbuchung//DE',
     'CALSCALE:GREGORIAN',
     'METHOD:REQUEST',
     'BEGIN:VEVENT',
-    `UID:apt-${Date.now()}@apexphysioclinic.com`,
+    `UID:apt-${Date.now()}@lebenswerk.praxismail.ch`,
     `DTSTAMP:${formatIcsDate(new Date())}`,
     `DTSTART:${formatIcsDate(startDateTime)}`,
     `DTEND:${formatIcsDate(endDateTime)}`,

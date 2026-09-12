@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Service, InquiryType, ContactInquiry } from '../types';
+import { brandLogo } from '../assets';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -190,10 +191,13 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white border border-[#A5D6A7] p-1 flex items-center justify-center shadow-xs">
               <img 
-                src="/src/assets/images/lebenswerk_logo_1787647029212.jpg" 
-                alt="Logo" 
+                src={brandLogo} 
+                alt="LEBENSWERK Logo" 
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/lebenswerk_logo.jpg';
+                }}
               />
             </div>
             <div>

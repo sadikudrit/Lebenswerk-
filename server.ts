@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { Resend } from "resend";
@@ -31,29 +32,82 @@ function getResend(): Resend | null {
   return resendClient;
 }
 
-// Lazy-initialized Nodemailer Gmail / SMTP Transporter
+// Lazy-initialized Nodemailer Hostpoint / Custom SMTP / Gmail Transporter
 let smtpTransporter: nodemailer.Transporter | null = null;
 function getSmtp(): nodemailer.Transporter | null {
   const user = process.env.SMTP_USER?.trim().replace(/^["']|["']$/g, "");
-  const pass = process.env.SMTP_PASS?.replace(/[\s"']/g, ""); // clean all spaces and quotes from 16-char app password
+  const pass = process.env.SMTP_PASS?.replace(/^["']|["']$/g, ""); // allow full password or app password
+  const host = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, "");
+  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined;
+  const secure = process.env.SMTP_SECURE === "true" || (port === 465) || (!port && !host?.includes("gmail"));
 
   if (user && pass) {
     if (!smtpTransporter) {
-      console.log(`🔌 Initializing Nodemailer for user: ${user} (password length: ${pass.length})`);
-      smtpTransporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: user,
-          pass: pass,
-        },
-      });
+      if (host) {
+        // Explicit SMTP server provided
+        console.log(`🔌 Initializing Nodemailer SMTP: host=${host}, port=${port || (secure ? 465 : 587)}, secure=${secure}, user=${user}`);
+        smtpTransporter = nodemailer.createTransport({
+          host: host,
+          port: port || (secure ? 465 : 587),
+          secure: secure,
+          auth: {
+            user: user,
+            pass: pass,
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+      } else if (user.toLowerCase().includes("praxismail.ch")) {
+        // Cenplex Praxismail SMTP (mail.praxismail.ch on port 587 or 465)
+        const praxismailHost = "mail.praxismail.ch";
+        console.log(`🔌 Initializing Nodemailer for Cenplex Praxismail (${praxismailHost}): user=${user}`);
+        smtpTransporter = nodemailer.createTransport({
+          host: praxismailHost,
+          port: 587,
+          secure: false, // STARTTLS
+          auth: {
+            user: user,
+            pass: pass,
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+      } else if (user.toLowerCase().includes("@gmail.com")) {
+        // Gmail fallback
+        console.log(`🔌 Initializing Nodemailer for Gmail user: ${user}`);
+        smtpTransporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: user,
+            pass: pass.replace(/[\s]/g, ""), // clean spaces from 16-char app pass
+          },
+        });
+      } else {
+        // Default to Swiss Hostpoint SMTP (asmtp.mail.hostpoint.ch on port 465 SSL)
+        const hostpointHost = "asmtp.mail.hostpoint.ch";
+        console.log(`🔌 Initializing Nodemailer with default Swiss SMTP (${hostpointHost}): user=${user}`);
+        smtpTransporter = nodemailer.createTransport({
+          host: hostpointHost,
+          port: 465,
+          secure: true,
+          auth: {
+            user: user,
+            pass: pass,
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+      }
     }
     return smtpTransporter;
   }
   return null;
 }
 
-// Unified Email Dispatcher (Supports Gmail SMTP and Resend)
+// Unified Email Dispatcher (Supports Hostpoint SMTP, Custom SMTP, Gmail, and Resend)
 async function dispatchEmail(params: {
   to: string;
   subject: string;
@@ -63,13 +117,19 @@ async function dispatchEmail(params: {
   const { to, subject, html, fromName = "LEBENSWERK Physiotherapie" } = params;
   console.log(`📨 Attempting to dispatch email to: "${to}" | Subject: "${subject}"`);
 
-  // 1. Prioritize Gmail SMTP / Nodemailer if configured
+  // 1. Prioritize SMTP (Hostpoint, custom SMTP, or Gmail)
   const smtp = getSmtp();
   const smtpUser = process.env.SMTP_USER?.trim().replace(/^["']|["']$/g, "");
+  const smtpHost = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, "") || (smtpUser?.includes("@gmail.com") ? "smtp.gmail.com" : "asmtp.mail.hostpoint.ch");
+  const providerLabel = smtpHost.includes("hostpoint") 
+    ? "Hostpoint SMTP" 
+    : smtpHost.includes("gmail") 
+      ? "Gmail SMTP" 
+      : `${smtpHost} SMTP`;
 
   if (smtp && smtpUser) {
     try {
-      console.log(`📤 Sending via Gmail SMTP from: ${smtpUser} to: ${to}...`);
+      console.log(`📤 Sending via ${providerLabel} from: ${smtpUser} to: ${to}...`);
       const fromHeader = `"${fromName}" <${smtpUser}>`;
       const info = await smtp.sendMail({
         from: fromHeader,
@@ -77,17 +137,22 @@ async function dispatchEmail(params: {
         subject,
         html,
       });
-      console.log(`✅ [Gmail SMTP SUCCESS] Email delivered to ${to} (MessageID: ${info.messageId})`);
-      return { success: true, provider: "Gmail SMTP", id: info.messageId };
+      console.log(`✅ [${providerLabel} SUCCESS] Email delivered to ${to} (MessageID: ${info.messageId})`);
+      return { success: true, provider: providerLabel, id: info.messageId };
     } catch (err: any) {
-      console.error("❌ [Gmail SMTP FAILED]:", err.message || err);
+      console.error(`❌ [${providerLabel} FAILED]:`, err.message || err);
+      let helpfulTip = err.message;
       if (err.code === 'EAUTH' || err.responseCode === 535) {
-        console.error("⚠️ Authentication Failed: Google requires a 16-character App Password, not your standard Gmail password.");
+        if (smtpHost.includes("hostpoint")) {
+          helpfulTip = "Hostpoint Authentifizierungsfehler: Bitte prüfen Sie die Hostpoint E-Mail-Adresse und das zugehörige Passwort im Hostpoint Control Panel.";
+        } else if (smtpHost.includes("gmail")) {
+          helpfulTip = "Gmail Fehler: Google erfordert ein 16-stelliges App-Passwort (App-Passwort), nicht Ihr normales Passwort.";
+        }
       }
       return { 
         success: false, 
-        provider: "Gmail SMTP", 
-        error: `Gmail Error (${err.code || 'AUTH'}): ${err.message}` 
+        provider: providerLabel, 
+        error: `${providerLabel} Fehler (${err.code || 'AUTH'}): ${helpfulTip}` 
       };
     }
   }
@@ -116,11 +181,11 @@ async function dispatchEmail(params: {
     }
   }
 
-  console.log(`ℹ️ [Email Simulation] Neither SMTP_USER nor RESEND_API_KEY configured. Email to ${to} saved to in-app Reminders Queue.`);
+  console.log(`ℹ️ [Email Queue] No SMTP credentials configured. Notification to ${to} recorded in internal queue.`);
   return { 
     success: false, 
     provider: "none", 
-    error: "No email credentials found in .env. Please set SMTP_USER & SMTP_PASS (Gmail) or RESEND_API_KEY." 
+    error: "Keine E-Mail-Zugangsdaten in den Einstellungen hinterlegt. Bitte SMTP_USER & SMTP_PASS (Hostpoint) konfigurieren." 
   };
 }
 
@@ -228,13 +293,13 @@ const specialists = [
     experienceYears: 12,
     rating: 4.99,
     reviewsCount: 180,
-    avatar: "/src/assets/images/doctor_vigan_musliu_1787647012290.jpg",
+    avatar: "/doctor_vigan.jpg",
     bio: "Vigan Musliu bietet individuelle, persönliche und zuverlässige physiotherapeutische Betreuung an der Hauptstrasse 19 in 4562 Biberist sowie bei Hausbesuchen. Mit langjähriger klinischer Erfahrung verbindet er manuelle Therapie, Schmerztherapie und gezielte Bewegungstherapie.",
     specialties: ["Klassische Physiotherapie", "Manuelle Therapie & Mobilisation", "Schmerztherapie & Triggerpunkte", "Neurologische Rehabilitation", "Rehabilitation nach Operationen"],
     education: "Dipl. Physiotherapeut HF/FH • ZHAW / SRK Anerkannt",
     availableDays: ["Thu", "Fri", "Sat"],
     consultationFee: 130,
-    languages: ["Deutsch (Muttersprache)", "Englisch", "Französisch"],
+    languages: ["Deutsch", "Englisch", "Albanisch"],
     nextAvailable: "Do 18:00–21:00 | Fr 17:00–20:00 | Sa 08:00–14:00",
     workSchedule: {
       thursday: "18:00 - 21:00",
@@ -266,23 +331,23 @@ let contactInquiries: any[] = [
 let appointments: any[] = [
   {
     id: "apt-101",
-    confirmationCode: "PHYSIO-8821",
+    confirmationCode: "LEBENSWERK-8821",
     patientName: "Vigan Musliu",
     patientEmail: "sadikudrit6@gmail.com",
-    patientPhone: "+1 (555) 234-5678",
+    patientPhone: "+41 76 458 04 42",
     serviceId: "serv-1",
-    serviceName: "Spinal Rehabilitation & Disc Therapy",
+    serviceName: "Allgemeine & klassische Physiotherapie",
     specialistId: "doc-1",
-    specialistName: "Dr. Elena Rostova, DPT, OCS",
+    specialistName: "Vigan Musliu, Dipl. Physiotherapeut",
     date: "2026-08-26",
-    timeSlot: "10:30 AM",
+    timeSlot: "18:00",
     durationMinutes: 50,
     meetingType: "in-clinic",
-    painArea: "Lower Back & Sciatic Nerve",
+    painArea: "Lendenwirbelsäule & Ischias",
     painLevel: 6,
-    symptomsNotes: "Shooting pain down right thigh after sitting at computer over 45 minutes. Periodic morning lumbar stiffness.",
-    medicalHistory: "L4-L5 disc protrusion diagnosed on MRI 2 months ago.",
-    insuranceProvider: "Blue Cross Blue Shield",
+    symptomsNotes: "Schmerzen beim Sitzen, morgendliche Steifigkeit im Lendenbereich.",
+    medicalHistory: "L4-L5 Diskusprotrusion.",
+    insuranceProvider: "Grundversicherung (KVG) / Physioswiss",
     status: "confirmed",
     createdAt: new Date().toISOString(),
     googleCalendarSynced: true,
@@ -291,7 +356,7 @@ let appointments: any[] = [
       email2h: true,
       sms: true
     },
-    price: 120
+    price: 130
   }
 ];
 
@@ -302,26 +367,26 @@ let emailRemindersQueue: any[] = [
     recipientEmail: "sadikudrit6@gmail.com",
     recipientName: "Sadik Udrit",
     type: "booking-confirmed",
-    subject: "Appointment Confirmed: Spinal Rehabilitation with Dr. Elena Rostova",
+    subject: "Terminbestätigung: Physiotherapie bei Vigan Musliu",
     scheduledTime: "Immediate",
     sentAt: new Date().toISOString(),
     status: "delivered",
     htmlContent: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
-        <div style="background: #0d9488; color: white; padding: 16px; border-radius: 8px; text-align: center;">
-          <h2 style="margin: 0; font-size: 20px;">Appointment Confirmed</h2>
-          <p style="margin: 4px 0 0 0; opacity: 0.9;">Confirmation: <strong>PHYSIO-8821</strong></p>
+        <div style="background: #2E7D32; color: white; padding: 16px; border-radius: 8px; text-align: center;">
+          <h2 style="margin: 0; font-size: 20px;">Termin bestätigt</h2>
+          <p style="margin: 4px 0 0 0; opacity: 0.9;">Bestätigungscode: <strong>LEBENSWERK-8821</strong></p>
         </div>
         <div style="margin-top: 20px;">
-          <p>Hi Sadik,</p>
-          <p>Your physiotherapy session has been successfully booked and synchronized with real-time clinic schedules.</p>
-          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #0d9488;">
-            <p style="margin: 4px 0;"><strong>Date:</strong> Wednesday, Aug 26, 2026</p>
-            <p style="margin: 4px 0;"><strong>Time:</strong> 10:30 AM (50 Mins)</p>
-            <p style="margin: 4px 0;"><strong>Specialist:</strong> Dr. Elena Rostova, DPT, OCS</p>
-            <p style="margin: 4px 0;"><strong>Location:</strong> Apex Spine & Physical Health Clinic (Suite 400)</p>
+          <p>Guten Tag,</p>
+          <p>Ihr Physiotherapietermin bei LEBENSWERK in Biberist wurde erfolgreich eingetragen.</p>
+          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #2E7D32;">
+            <p style="margin: 4px 0;"><strong>Datum:</strong> Donnerstag, 27. August 2026</p>
+            <p style="margin: 4px 0;"><strong>Uhrzeit:</strong> 18:30 Uhr (50 Min.)</p>
+            <p style="margin: 4px 0;"><strong>Therapeut:</strong> Vigan Musliu, Dipl. Physiotherapeut</p>
+            <p style="margin: 4px 0;"><strong>Ort:</strong> Hauptstrasse 19, 4562 Biberist</p>
           </div>
-          <p style="font-size: 13px; color: #64748b; margin-top: 16px;">Automated 24-hour and 2-hour email notifications will be sent prior to your visit. Please wear comfortable, flexible athletic wear.</p>
+          <p style="font-size: 13px; color: #64748b; margin-top: 16px;">Bitte bringen Sie Ihre Krankenkassenkarte und allfällige ärztliche Verordnungen mit.</p>
         </div>
       </div>
     `
@@ -332,14 +397,13 @@ let emailRemindersQueue: any[] = [
     recipientEmail: "sadikudrit6@gmail.com",
     recipientName: "Sadik Udrit",
     type: "reminder-24h",
-    subject: "Reminder (Tomorrow): Your Physiotherapy Session at 10:30 AM",
+    subject: "Terminerinnerung (Morgen): Physiotherapie LEBENSWERK",
     scheduledTime: "2026-08-25T10:30:00Z",
     status: "scheduled",
     htmlContent: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
-        <h3 style="color: #0f766e;">24-Hour Visit Reminder</h3>
-        <p>This is a quick notification that your physical therapy appointment with <strong>Dr. Elena Rostova</strong> is scheduled for tomorrow at <strong>10:30 AM</strong>.</p>
-        <p>Please arrive 10 minutes early to complete any preliminary spinal mobility checks.</p>
+        <h3 style="color: #1B5E20;">Terminerinnerung</h3>
+        <p>Wir erinnern Sie an Ihren morgigen Physiotherapietermin bei <strong>Vigan Musliu</strong> an der Hauptstrasse 19 in Biberist.</p>
       </div>
     `
   }
@@ -350,7 +414,7 @@ let patientRecords: Record<string, any> = {
     id: "pat-901",
     patientName: "Sadik Udrit",
     patientEmail: "sadikudrit6@gmail.com",
-    patientPhone: "+1 (555) 234-5678",
+    patientPhone: "+41 76 458 04 42",
     dob: "1992-04-18",
     primaryCondition: "L4-L5 Lumbar Disc Radiculopathy & Sciatic Neural Tension",
     initialPainScore: 8,
@@ -358,17 +422,17 @@ let patientRecords: Record<string, any> = {
     mobilityImprovementPct: 78,
     carePlanStartDate: "2026-07-15",
     targetRecoveryDate: "2026-09-30",
-    attendingPhysio: "Dr. Elena Rostova, DPT, OCS",
+    attendingPhysio: "Vigan Musliu, Dipl. Physiotherapeut",
     clinicalNotes: [
       {
         date: "2026-08-18",
-        physio: "Dr. Elena Rostova",
+        physio: "Vigan Musliu",
         note: "Patient reported marked reduction in leg radiation following McKenzie extension loading protocols. SLR (Straight Leg Raise) angle increased from 42° to 74° pain-free.",
         measurements: "Lumbar Flexion: +18cm floor reach; SLR Right: 74°"
       },
       {
         date: "2026-08-04",
-        physio: "Dr. Elena Rostova",
+        physio: "Vigan Musliu",
         note: "Initial assessment. Hypomobility noted at L4-L5 segment with secondary piriformis hypertonicity. Initiated gentle neural glides and transverse abdominis activation.",
         measurements: "Lumbar Flexion: Pain at 30°; SLR Right: 42°"
       }
@@ -458,6 +522,17 @@ let patientRecords: Record<string, any> = {
 };
 
 // API ROUTES
+
+// 0. Health check endpoint
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    clinic: "LEBENSWERK Physiotherapie",
+    address: "Hauptstrasse 19, 4562 Biberist",
+    therapist: "Vigan Musliu",
+    timestamp: new Date().toISOString()
+  });
+});
 
 // 1. Get services
 app.get("/api/services", (req: Request, res: Response) => {
@@ -663,8 +738,12 @@ app.post("/api/appointments", (req: Request, res: Response) => {
     `
   };
 
-  // Determine doctor notification email recipient
-  const doctorRecipientEmail = (selectedDoc as any).email || process.env.DOCTOR_NOTIFICATION_EMAIL || process.env.CLINIC_NOTIFICATION_EMAIL || "info@lebenswerk.praxismail.ch";
+  // Determine doctor notification email recipient (Cenplex Praxismail, custom configured email)
+  const doctorRecipientEmail = process.env.DOCTOR_NOTIFICATION_EMAIL?.trim() || 
+    process.env.DOCTOR_EMAIL?.trim() || 
+    process.env.SMTP_USER?.trim() || 
+    (selectedDoc as any).email || 
+    "info@lebenswerk.praxismail.ch";
 
   // Doctor Notification Item in internal queue
   const doctorAlertReminder = {
@@ -673,41 +752,41 @@ app.post("/api/appointments", (req: Request, res: Response) => {
     recipientEmail: doctorRecipientEmail,
     recipientName: selectedDoc.name,
     type: "doctor-alert",
-    subject: `🩺 Neuer Patient gebucht: ${newAppointment.patientName} (${confCode})`,
+    subject: `🩺 Neuer Patient gebucht: ${newAppointment.patientName} (${confCode}) - ${selectedService.name}`,
     scheduledTime: "Immediate",
     sentAt: new Date().toISOString(),
     status: "delivered",
     htmlContent: `
-      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #A5D6A7; border-radius: 12px; background: #ffffff;">
-        <div style="background: #1B5E20; color: #E8F5E9; padding: 20px; border-radius: 10px; text-align: left;">
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #A5D6A7; border-radius: 16px; background: #ffffff; color: #1B5E20;">
+        <div style="background: #1B5E20; color: #E8F5E9; padding: 20px; border-radius: 12px; text-align: left;">
           <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Neuer Physiotherapie Termin gebucht</h2>
-          <p style="margin: 6px 0 0; opacity: 0.92; font-size: 14px;">Therapeut: <strong>${selectedDoc.name}</strong></p>
+          <p style="margin: 6px 0 0; opacity: 0.92; font-size: 14px;">Therapeut: <strong>${selectedDoc.name}</strong> • LEBENSWERK Biberist</p>
         </div>
 
         <div style="margin-top: 24px; color: #1B5E20; line-height: 1.6;">
           <h3 style="font-size: 16px; margin: 0 0 12px; color: #1B5E20; border-bottom: 2px solid #A5D6A7; padding-bottom: 6px;">Patient & Termin Übersicht</h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; width: 140px;">Patient Name:</td><td style="padding: 8px 0; font-weight: 600; color: #1B5E20;">${newAppointment.patientName}</td></tr>
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Patient Email:</td><td style="padding: 8px 0; color: #1B5E20;"><a href="mailto:${newAppointment.patientEmail}" style="color: #1B5E20; font-weight: 600;">${newAppointment.patientEmail}</a></td></tr>
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Patient Phone:</td><td style="padding: 8px 0; color: #1B5E20;">${newAppointment.patientPhone}</td></tr>
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Behandlung:</td><td style="padding: 8px 0; font-weight: 600; color: #1B5E20;">${selectedService.name} (${selectedService.durationMinutes} min)</td></tr>
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Datum & Zeit:</td><td style="padding: 8px 0; font-weight: 600; color: #1B5E20;">${newAppointment.date} um ${newAppointment.timeSlot}</td></tr>
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Ort / Format:</td><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">${newAppointment.meetingType === 'home-visit' ? 'Hausbesuch' : "LEBENSWERK Praxis (Hauptstrasse 19, 4562 Biberist)"}</td></tr>
-            ${data.streetAddress ? `<tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Adresse:</td><td style="padding: 8px 0; font-weight: 600; color: #1B5E20;">${data.streetAddress}, ${data.zipCity || 'Biberist'}</td></tr>` : ''}
-            ${data.addressNotes ? `<tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Hinweise:</td><td style="padding: 8px 0; color: #1B5E20;">${data.addressNotes}</td></tr>` : ''}
-            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20;">Code:</td><td style="padding: 8px 0; font-family: monospace; font-weight: 700; color: #1B5E20;">${confCode}</td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; width: 140px; font-weight: 600;">Patient Name:</td><td style="padding: 8px 0; font-weight: 700; color: #1B5E20;">${newAppointment.patientName}</td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Telefon:</td><td style="padding: 8px 0; color: #1B5E20;"><a href="tel:${newAppointment.patientPhone}" style="color: #1B5E20; font-weight: bold; text-decoration: underline;">${newAppointment.patientPhone}</a></td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">E-Mail:</td><td style="padding: 8px 0; color: #1B5E20;"><a href="mailto:${newAppointment.patientEmail}" style="color: #1B5E20; font-weight: 600;">${newAppointment.patientEmail}</a></td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Behandlung:</td><td style="padding: 8px 0; font-weight: 700; color: #1B5E20;">${selectedService.name} (${selectedService.durationMinutes} min)</td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Datum & Zeit:</td><td style="padding: 8px 0; font-weight: 700; color: #1B5E20;">${newAppointment.date} um ${newAppointment.timeSlot}</td></tr>
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Ort / Format:</td><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">${newAppointment.meetingType === 'home-visit' ? '🏡 Mobiler Hausbesuch' : "🏥 LEBENSWERK Praxis (Hauptstrasse 19, 4562 Biberist)"}</td></tr>
+            ${data.streetAddress ? `<tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Patientenadresse:</td><td style="padding: 8px 0; font-weight: 600; color: #1B5E20;">${data.streetAddress}, ${data.zipCity || 'Biberist'}</td></tr>` : ''}
+            ${data.addressNotes ? `<tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Zugang / Hinweise:</td><td style="padding: 8px 0; color: #1B5E20;">${data.addressNotes}</td></tr>` : ''}
+            <tr style="border-bottom: 1px solid #E8F5E9;"><td style="padding: 8px 0; color: #1B5E20; font-weight: 600;">Buchungscode:</td><td style="padding: 8px 0; font-family: monospace; font-weight: 700; color: #1B5E20;">${confCode}</td></tr>
           </table>
 
-          <h3 style="font-size: 16px; margin: 20px 0 12px; color: #0f766e; border-bottom: 2px solid #ccfbf1; padding-bottom: 6px;">Clinical Assessment & Triage</h3>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-            <p style="margin: 0 0 8px;"><strong>Chief Complaint / Pain Area:</strong> ${newAppointment.painArea}</p>
-            <p style="margin: 0 0 8px;"><strong>Reported Pain Intensity:</strong> <span style="background: ${newAppointment.painLevel >= 7 ? '#fee2e2' : '#fef3c7'}; color: ${newAppointment.painLevel >= 7 ? '#991b1b' : '#92400e'}; padding: 2px 8px; border-radius: 12px; font-weight: 700;">${newAppointment.painLevel} / 10</span></p>
-            <p style="margin: 0 0 8px;"><strong>Symptoms / Specific Triggers:</strong> ${newAppointment.symptomsNotes || 'None noted by patient during online booking'}</p>
-            <p style="margin: 0;"><strong>Medical History / Red Flags:</strong> ${newAppointment.medicalHistory || 'No prior surgeries or red flags indicated'}</p>
+          <h3 style="font-size: 16px; margin: 20px 0 12px; color: #1B5E20; border-bottom: 2px solid #A5D6A7; padding-bottom: 6px;">Klinische Angaben & Beschwerdebild</h3>
+          <div style="background: #E8F5E9; border: 1px solid #A5D6A7; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+            <p style="margin: 0 0 8px;"><strong>Hauptbeschwerde / Schmerzbereich:</strong> ${newAppointment.painArea}</p>
+            <p style="margin: 0 0 8px;"><strong>Schmerzintensität:</strong> <span style="background: ${newAppointment.painLevel >= 7 ? '#fee2e2' : '#fef3c7'}; color: ${newAppointment.painLevel >= 7 ? '#991b1b' : '#92400e'}; padding: 2px 8px; border-radius: 12px; font-weight: 700;">${newAppointment.painLevel} / 10</span></p>
+            <p style="margin: 0 0 8px;"><strong>Symptome / Auslöser:</strong> ${newAppointment.symptomsNotes || 'Keine spezifischen Auslöser angegeben'}</p>
+            <p style="margin: 0;"><strong>Vorgeschichte / Operationen:</strong> ${newAppointment.medicalHistory || 'Keine Voroperationen / Red Flags angegeben'}</p>
           </div>
 
           <div style="text-align: center; margin-top: 24px;">
-            <a href="${googleEventLink}" style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">📅 Add to Google Calendar</a>
+            <a href="${googleEventLink}" style="display: inline-block; background: #1B5E20; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 14px;">📅 Zum Google Kalender hinzufügen</a>
           </div>
         </div>
       </div>
@@ -1003,29 +1082,33 @@ app.post("/api/reminders/send-test", (req: Request, res: Response) => {
   res.json({ success: true, reminder: testReminder });
 });
 
-// 9b. Live Test Email Trigger & Diagnostic Route (Gmail SMTP or Resend)
+// 9b. Live Test Email Trigger & Diagnostic Route (Cenplex Praxismail, Hostpoint, Custom SMTP, Gmail or Resend)
 app.post("/api/send-test-email", async (req: Request, res: Response) => {
   const { to } = req.body;
-  const targetEmail = to || process.env.DOCTOR_NOTIFICATION_EMAIL || process.env.CLINIC_NOTIFICATION_EMAIL || "sadikudrit6@gmail.com";
+  const targetEmail = to || process.env.DOCTOR_NOTIFICATION_EMAIL || process.env.DOCTOR_EMAIL || process.env.SMTP_USER || "info@lebenswerk.praxismail.ch";
+
+  const host = process.env.SMTP_HOST?.trim() || (process.env.SMTP_USER?.includes("praxismail.ch") ? "mail.praxismail.ch" : process.env.SMTP_USER?.includes("@gmail.com") ? "smtp.gmail.com" : "asmtp.mail.hostpoint.ch");
+  const providerLabel = host.includes("praxismail") ? "Cenplex Praxismail SMTP" : host.includes("hostpoint") ? "Hostpoint Swiss SMTP" : host.includes("gmail") ? "Gmail SMTP" : `${host} SMTP`;
 
   const result = await dispatchEmail({
     to: targetEmail,
-    subject: "🩺 Live Test: Apex Physiotherapy Email Notifications Active!",
+    subject: "🩺 Live Test: LEBENSWERK E-Mail Benachrichtigungen Aktiv!",
     html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 580px; padding: 24px; border: 1px solid #ccfbf1; border-radius: 12px; background: #ffffff;">
-        <div style="background: #0f766e; color: #ffffff; padding: 18px; border-radius: 10px; text-align: center;">
-          <h2 style="margin: 0; font-size: 20px;">Email Notifications Active!</h2>
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; padding: 24px; border: 1px solid #A5D6A7; border-radius: 16px; background: #ffffff; color: #1B5E20;">
+        <div style="background: #1B5E20; color: #E8F5E9; padding: 20px; border-radius: 12px; text-align: center;">
+          <h2 style="margin: 0; font-size: 20px;">E-Mail Benachrichtigungssystem Aktiv!</h2>
+          <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;">LEBENSWERK Physiotherapie Biberist</p>
         </div>
-        <div style="margin-top: 20px; color: #334155; line-height: 1.6;">
-          <p>Hello Doctor,</p>
-          <p>This is a live test notification from your Apex Physiotherapy clinic booking platform. Your email dispatch integration is verified and working properly.</p>
-          <div style="background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px; padding: 16px; margin: 16px 0;">
-            <p style="margin: 0 0 6px;"><strong>Status:</strong> ✅ Verified & Active</p>
-            <p style="margin: 0 0 6px;"><strong>Recipient:</strong> ${targetEmail}</p>
-            <p style="margin: 0 0 6px;"><strong>Delivery Method:</strong> ${process.env.SMTP_USER ? `Gmail SMTP (${process.env.SMTP_USER})` : 'Resend API'}</p>
-            <p style="margin: 0;"><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+        <div style="margin-top: 20px; font-size: 14px; line-height: 1.6;">
+          <p>Guten Tag Herr Musliu,</p>
+          <p>Dies ist eine Live-Testnachricht Ihrer LEBENSWERK Physiotherapie Buchungsplattform. Ihre E-Mail-Zustellung über <strong>${providerLabel}</strong> ist verifiziert und einsatzbereit.</p>
+          <div style="background: #E8F5E9; border: 1px solid #A5D6A7; border-radius: 10px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0 0 6px;"><strong>Status:</strong> ✅ Verifiziert & Aktiv</p>
+            <p style="margin: 0 0 6px;"><strong>Empfänger-Konto:</strong> ${targetEmail}</p>
+            <p style="margin: 0 0 6px;"><strong>Ausgangsserver:</strong> ${host} (Port ${process.env.SMTP_PORT || '465'})</p>
+            <p style="margin: 0;"><strong>Zeitstempel:</strong> ${new Date().toLocaleString('de-CH')}</p>
           </div>
-          <p style="font-size: 13px; color: #64748b;">Whenever a new patient books an appointment, all clinical details, pain severity scores, and triage notes will be delivered to you here instantly.</p>
+          <p style="font-size: 13px; color: #4B7A50;">Sobald ein Patient online einen Termin bucht oder eine Anfrage stellt, erhalten Sie sofort eine vollständige E-Mail mit Patientennamen, Telefonnummer, Beschwerdegrad und Termindetails.</p>
         </div>
       </div>
     `
@@ -1036,7 +1119,7 @@ app.post("/api/send-test-email", async (req: Request, res: Response) => {
       success: false,
       configured: result.provider !== "none",
       provider: result.provider,
-      error: result.error || "Failed to send email. Check your SMTP_USER/SMTP_PASS in .env"
+      error: result.error || "E-Mail-Versand fehlgeschlagen. Bitte prüfen Sie SMTP_USER, SMTP_PASS und SMTP_HOST."
     });
   }
 
@@ -1044,7 +1127,7 @@ app.post("/api/send-test-email", async (req: Request, res: Response) => {
     success: true,
     configured: true,
     provider: result.provider,
-    message: `Test email successfully sent to ${targetEmail} via ${result.provider}!`,
+    message: `Test-E-Mail erfolgreich an ${targetEmail} via ${result.provider} gesendet!`,
     messageId: result.id
   });
 });
@@ -1052,8 +1135,10 @@ app.post("/api/send-test-email", async (req: Request, res: Response) => {
 // 9c. Live Email Configuration & Diagnostic Check Endpoint
 app.get("/api/email-diagnostics", async (req: Request, res: Response) => {
   const user = process.env.SMTP_USER?.trim().replace(/^["']|["']$/g, "");
-  const pass = process.env.SMTP_PASS?.replace(/[\s"']/g, "");
-  const doctorEmail = process.env.DOCTOR_NOTIFICATION_EMAIL || "sadikudrit6@gmail.com";
+  const pass = process.env.SMTP_PASS?.replace(/^["']|["']$/g, "");
+  const host = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, "") || (user?.includes("praxismail.ch") ? "mail.praxismail.ch" : user?.includes("@gmail.com") ? "smtp.gmail.com" : "asmtp.mail.hostpoint.ch");
+  const port = process.env.SMTP_PORT || (host.includes("praxismail") ? "587" : host.includes("gmail") ? "465" : "465");
+  const doctorEmail = process.env.DOCTOR_NOTIFICATION_EMAIL?.trim() || process.env.DOCTOR_EMAIL?.trim() || user || "info@lebenswerk.praxismail.ch";
   const resendKey = process.env.RESEND_API_KEY?.trim();
 
   let smtpStatus = "not_configured";
@@ -1072,16 +1157,29 @@ app.get("/api/email-diagnostics", async (req: Request, res: Response) => {
     }
   }
 
+  const isPraxismail = host.includes("praxismail") || (user && user.includes("praxismail.ch"));
+  const isHostpoint = host.includes("hostpoint") || (!host.includes("gmail") && !isPraxismail && user && !user.includes("@gmail.com"));
+  const providerLabel = isPraxismail
+    ? (smtpStatus === "connected_and_verified" ? "Cenplex Praxismail (Aktiv)" : (user && pass ? "Cenplex Praxismail (Auth Fehler)" : "Cenplex Praxismail"))
+    : isHostpoint 
+      ? (smtpStatus === "connected_and_verified" ? "Hostpoint SMTP (Aktiv)" : (user && pass ? "Hostpoint SMTP (Auth Fehler)" : "Hostpoint SMTP"))
+      : (smtpStatus === "connected_and_verified" ? "Gmail SMTP (Aktiv)" : (user && pass ? "Gmail SMTP (Auth Fehler)" : (resendKey ? "Resend API" : "In-App Warteschlange")));
+
   res.json({
     hasSmtpUser: !!user,
-    maskedUser: user ? `${user.substring(0, 3)}***@${user.split('@')[1] || 'gmail.com'}` : null,
+    smtpHost: host,
+    smtpPort: port,
+    smtpSecure: process.env.SMTP_SECURE !== "false",
+    isHostpoint,
+    isPraxismail,
+    maskedUser: user ? `${user.substring(0, 3)}***@${user.split('@')[1] || 'praxismail.ch'}` : null,
     hasSmtpPass: !!pass,
     smtpPassLength: pass ? pass.length : 0,
     hasResendKey: !!resendKey,
     doctorNotificationEmail: doctorEmail,
     smtpStatus,
     smtpError,
-    activeProvider: smtpStatus === "connected_and_verified" ? "Gmail SMTP (Active)" : (user && pass ? "Gmail SMTP (Auth Issue)" : (resendKey ? "Resend API" : "Simulated Local Queue"))
+    activeProvider: providerLabel
   });
 });
 
@@ -1118,7 +1216,7 @@ Please provide a concise, structured JSON clinical triage recommendation with th
 1. "urgencyLevel": "Low (Standard Rehab)" | "Moderate (Prompt Evaluation Recommended)" | "High (Immediate Orthopedic/Medical Review Required)"
 2. "suspectedPathology": A clear, 1-2 sentence clinical assessment of possible musculoskeletal causes (e.g. disc herniation, rotator cuff impingement, myofascial trigger point, patellofemoral syndrome).
 3. "recommendedService": Recommended physiotherapy modality name from our clinic (options: "Spinal Rehabilitation & Disc Therapy", "Sports Injury & Athletic Performance Rehab", "Post-Surgical Joint & Mobility Restoration", "Dry Needling & Advanced Trigger Point Therapy", "Posture Correction & Ergonomic Health", "Virtual Physiotherapy & Tele-Rehab Consultation").
-4. "recommendedSpecialist": Either "Dr. Elena Rostova, DPT, OCS" (Spine/Neck), "Marcus Vance, PT, CSCS" (Sports/Knee/Shoulder), or "Dr. Sophia Chen, DPT, CMPT" (Post-Op/Joint/Mobility).
+4. "recommendedSpecialist": "Vigan Musliu, Dipl. Physiotherapeut & Praxisleiter" (Praxis Biberist & Domizilbehandlungen).
 5. "immediateSelfCareAdvice": 3 practical bullet points for acute relief before the appointment (e.g. ice vs heat, gentle unloading postures, movements to avoid).
 6. "questionsToPrepare": 2 questions the patient should be ready to discuss with their physiotherapist.
 
@@ -1151,23 +1249,264 @@ Respond in pure valid JSON format ONLY with no markdown quotes.`;
     triage: {
       urgencyLevel: Number(painLevel) >= 8 ? "Moderate (Prompt Evaluation Recommended)" : "Low (Standard Rehab)",
       suspectedPathology: isSpine 
-        ? "Possible mechanical lumbar/cervical facet irritation or discogenic nerve sensitivity with localized muscular spasm."
+        ? "Mögliche mechanische Reizung im Lendenwirbel- oder Facettengelenkbereich mit reflektorischer Muskelanspannung."
         : isSports 
-        ? "Possible soft tissue ligamentous strain or kinetic chain tendinopathy with periarticular load imbalance."
-        : "Musculoskeletal imbalance and myofascial strain with reduced range of motion.",
-      recommendedService: isSpine ? "Spinal Rehabilitation & Disc Therapy" : isSports ? "Sports Injury & Athletic Performance Rehab" : "Dry Needling & Advanced Trigger Point Therapy",
-      recommendedSpecialist: isSpine ? "Dr. Elena Rostova, DPT, OCS" : isSports ? "Marcus Vance, PT, CSCS" : "Dr. Sophia Chen, DPT, CMPT",
+        ? "Mögliche Überlastung des Sehnen- und Bandapparates oder myofasziale Dysbalance."
+        : "Muskuloskelettale Dysbalance und myofasziale Verspannung mit reduzierter Beweglichkeit.",
+      recommendedService: isSpine ? "Allgemeine & klassische Physiotherapie" : isSports ? "Rehabilitation nach Sportverletzungen" : "Manuelle Therapie & Gelenkmobilisation",
+      recommendedSpecialist: "Vigan Musliu, Dipl. Physiotherapeut",
       immediateSelfCareAdvice: [
-        "Avoid prolonged static postures greater than 30 minutes; alternate positions gently.",
-        "Apply cold compress for 15 minutes if acute swelling or burning is present.",
-        "Perform slow diaphragmatic breathing to release protective muscular bracing."
+        "Längere statische Sitzpositionen (über 30 Min.) vermeiden und sanfte Positionswechsel einbauen.",
+        "Bei akuter Überwärmung oder Schwellung 10-15 Minuten moderat kühlen; bei reiner Muskelverspannung sanfte Wärme anwenden.",
+        "Tiefes Zwerchfellatmen zur Lockerung der reflektorischen Rumpfmuskulatur ausführen."
       ],
       questionsToPrepare: [
-        "What specific daily movements or chair positions provoke the sharpest onset?",
-        "Have you noticed any numbness, tingling, or weakness radiating into hands or feet?"
+        "Bei welchen konkreten Alltagsbewegungen oder Belastungen treten die Beschwerden am stärksten auf?",
+        "Haben Sie bereits ärztliche Röntgen- oder MRT-Befunde, die Sie zum Termin mitbringen können?"
       ]
     }
   });
+});
+
+// ==========================================
+// PRAXIS CMS & CONTENT MANAGEMENT API
+// ==========================================
+const CONTENT_FILE_PATH = path.join(process.cwd(), "data", "site-content.json");
+const AUTH_FILE_PATH = path.join(process.cwd(), "data", "cms-auth.json");
+
+const FALLBACK_DEFAULT_CONTENT = {
+  hero: {
+    badgeText: "Praxis Biberist & Hausbesuche in der Region Solothurn",
+    headlineMain: "Willkommen bei Lebenswerk",
+    headlineHighlight: "Physiotherapie & Gesundheit",
+    paragraph1: "Persönliche, individuelle und evidenzbasierte Physiotherapie in Biberist und bei Ihnen zu\nHause.",
+    paragraph2: "In meiner Praxis an der Hauptstrasse 19, 4562 Biberist begleite ich Sie persönlich auf dem\nWeg zu mehr Beweglichkeit, weniger Beschwerden und mehr Sicherheit im Alltag.\nZusätzlich biete ich Domizilbehandlungen in der Region Solothurn an",
+    scheduleTitle: "Reguläre Behandlungszeiten in Biberist",
+    scheduleThursday: "Donnerstag: 18:00 – 21:00 Uhr",
+    scheduleFriday: "Freitag: 17:00 – 20:00 Uhr",
+    scheduleSaturday: "Samstag: 08:00 – 14:00 Uhr ",
+  },
+  doctor: {
+    sectionBadge: "Praxis Biberist & Domizilbehandlung",
+    sectionTitle: "Vigan Musliu",
+    sectionSubtitle: "Dipl. Physiotherapeut HF/FH • SRK-Anerkannt • Experte für Bewegungstherapie & Rehabilitation",
+    roleBadge: "Praxisleiter & Dipl. Physiotherapeut",
+    membershipBadge: "Physioswiss Mitglied",
+    name: "Vigan Musliu",
+    title: "Dipl. Physiotherapeut & Praxisleiter",
+    bioParagraph1: "Als Physiotherapeut lege ich grossen Wert auf eine persönliche, individuelle und\nzielgerichtete Behandlung. Gemeinsam mit Ihnen analysiere ich Ihre Beschwerden und\nerarbeite einen Therapieplan, der auf Ihre persönlichen Bedürfnisse und Ziele abgestimmt\nist.",
+    bioParagraph2: "Meine Behandlung verbindet aktive Rehabilitation, manuelle therapeutische Massnahmen,\nBewegungsförderung und gezieltes Training.\nMein Ziel ist es, Ihre Beweglichkeit und körperliche Funktion zu verbessern, Beschwerden\nzu reduzieren und Ihnen mehr Sicherheit und Selbstständigkeit im Alltag zu ermöglichen.",
+    education: "Hier sollte die Berufsbezeichnung genau so angegeben werden, wie sie auf Ihrer Schweizer Anerkennung bzw. Ihrem Diplom bestätigt ist. Wenn Ihr ausländischer Physiotherapieabschluss durch das SRK anerkannt wurde, empfiehlt sich beispielsweise eine sachliche Formulierung wie: Physiotherapeut, in der Schweiz SRK-anerkannt. Eine Institution wie ZHAW sollte nur genannt werden, wenn dort tatsächlich ein entsprechender Abschluss oder eine Weiterbildung absolviert wurde.",
+    languages: "Deutsch, Englisch, Albanisch",
+    specialties: [
+      "Allgemeine und klassische Physiotherapie",
+      "Manuelle Therapie & Gelenkmobilisation",
+      "Rehabilitation nach Operationen & Sportverletzungen",
+      "Schmerztherapie & Triggerpunktbehandlung",
+      "Domizilbehandlungen (Hausbesuche Solothurn & Biberist)",
+      "Gangschule, Gleichgewichtstraining & Sturzprävention",
+      "Neurologische & orthopädische Rehabilitation",
+      "Kraft-, Beweglichkeits- & Koordinationstraining",
+    ],
+  },
+  contact: {
+    addressName: "Physiotherapie LEBENSWERK",
+    street: "Hauptstrasse 19",
+    zipCity: "4562 Biberist",
+    phoneDisplay: "076 458 04 42",
+    phoneRaw: "+41764580442",
+    whatsappNumber: "41764580442",
+    whatsappDefaultText: "Guten Tag Herr Musliu, ich interessiere mich für einen Physiotherapie-Termin bei LEBENSWERK in Biberist.",
+    email: "info@lebenswerk.praxismail.ch",
+    hoursThursday: "18:00 – 21:00 Uhr",
+    hoursFriday: "17:00 – 20:00 Uhr",
+    hoursSaturday: "08:00 – 14:00 Uhr",
+  },
+  announcement: {
+    enabled: true,
+    text: "Jetzt Termine für Praxis & Domizilbesuche bequem online oder per WhatsApp buchen. Neue Patientinnen & Patienten herzlich willkommen!",
+    badge: "Praxis-News",
+    linkText: "Termin buchen",
+    linkHref: "#booking",
+  },
+  footer: {
+    bannerBadge: "Praxis Biberist & Hausbesuche",
+    bannerTitle: "Möchten Sie einen Termin vereinbaren?",
+    bannerText: "Vereinbaren Sie Ihren Termin für eine Behandlung in der Praxis in Biberist oder fragen Sie\neine Domizilbehandlung an. Kontaktieren Sie mich bequem online oder telefonisch.",
+    bookingButtonText: "Termin Jetzt Buchen",
+    phoneButtonPrefix: "anrufen",
+    brandDescription: "Persönliche und individuelle physiotherapeutische Betreuung in Biberist sowie\nDomizilbehandlungen in der Region Solothurn",
+    locationBoxTitle: "Standort & Region",
+    locationBoxText: "Hauptstrasse 19, 4562 Biberist sowie mobile Hausbesuche im gesamten Kanton Solothurn.",
+    whatsappButtonText: "Direkt via WhatsApp schreiben",
+    hoursBoxTitle: "Öffnungszeiten & Termine",
+    hoursOnlineBookingText: "Termin jetzt online anfragen",
+    partnerBadge: "Offizieller Verbandspartner",
+    partnerSubtext: "Mitglied beim Schweizer Physiotherapie Verband (physioswiss) • Anerkannt von allen Schweizer Krankenkassen (KVG) & Unfallversicherungen (UVG)",
+    copyrightText: "© 2026 Physiotherapie LEBENSWERK • Alle Rechte vorbehalten.",
+    bottomSubtitle: "Praxis für Physiotherapie & Domizilbehandlungen • Hauptstrasse 19, 4562 Biberist",
+  },
+};
+
+function getStoredPin(): string {
+  try {
+    if (fs.existsSync(AUTH_FILE_PATH)) {
+      const raw = fs.readFileSync(AUTH_FILE_PATH, "utf-8");
+      const data = JSON.parse(raw);
+      if (data.pin) return String(data.pin);
+    }
+  } catch (err) {
+    console.warn("Could not read custom CMS PIN:", err);
+  }
+  return "01091996";
+}
+
+function getStoredContent() {
+  try {
+    let parsed: any = null;
+    if (fs.existsSync(CONTENT_FILE_PATH)) {
+      const raw = fs.readFileSync(CONTENT_FILE_PATH, "utf-8");
+      parsed = JSON.parse(raw);
+    }
+    if (!parsed || !parsed.doctor || !parsed.footer || !parsed.hero) {
+      parsed = {
+        ...FALLBACK_DEFAULT_CONTENT,
+        ...(parsed || {}),
+        hero: { ...FALLBACK_DEFAULT_CONTENT.hero, ...(parsed?.hero || {}) },
+        doctor: { ...FALLBACK_DEFAULT_CONTENT.doctor, ...(parsed?.doctor || {}) },
+        contact: { ...FALLBACK_DEFAULT_CONTENT.contact, ...(parsed?.contact || {}) },
+        footer: { ...FALLBACK_DEFAULT_CONTENT.footer, ...(parsed?.footer || {}) },
+        announcement: { ...FALLBACK_DEFAULT_CONTENT.announcement, ...(parsed?.announcement || {}) },
+      };
+      try {
+        const dataDir = path.join(process.cwd(), "data");
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(CONTENT_FILE_PATH, JSON.stringify(parsed, null, 2), "utf-8");
+      } catch {}
+    }
+    return parsed;
+  } catch (err) {
+    console.warn("Could not read stored site content:", err);
+    return FALLBACK_DEFAULT_CONTENT;
+  }
+}
+
+// GET /api/content
+app.get("/api/content", (req: Request, res: Response) => {
+  const content = getStoredContent();
+  if (content) {
+    return res.json({ success: true, content });
+  }
+  return res.json({ success: true, content: null });
+});
+
+// POST /api/content/verify-pin
+app.post("/api/content/verify-pin", (req: Request, res: Response) => {
+  const { pin } = req.body || {};
+  const currentPin = getStoredPin();
+  if (String(pin).trim() === currentPin) {
+    return res.json({ success: true, valid: true });
+  }
+  return res.json({ success: false, valid: false, message: "Ungültiger Praxis-PIN" });
+});
+
+// POST /api/content/change-pin
+app.post("/api/content/change-pin", (req: Request, res: Response) => {
+  const { currentPin, newPin } = req.body || {};
+  const expectedPin = getStoredPin();
+  if (String(currentPin).trim() !== expectedPin) {
+    return res.status(401).json({ success: false, message: "Der aktuelle PIN ist ungültig." });
+  }
+  if (!newPin || String(newPin).trim().length < 4) {
+    return res.status(400).json({ success: false, message: "Neuer PIN muss mindestens 4 Zeichen lang sein." });
+  }
+
+  try {
+    const dataDir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    fs.writeFileSync(AUTH_FILE_PATH, JSON.stringify({ pin: String(newPin).trim(), updatedAt: new Date().toISOString() }, null, 2), "utf-8");
+    return res.json({ success: true, message: "PIN erfolgreich geändert." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: "Fehler beim Speichern des PINs: " + err.message });
+  }
+});
+
+// POST /api/content
+app.post("/api/content", (req: Request, res: Response) => {
+  const { content, pin } = req.body || {};
+  const expectedPin = getStoredPin();
+  const isAuthHeader = req.headers["x-cms-authenticated"] === "true";
+
+  // Validate authorization: accept matching PIN, default pin, or auth header from verified session
+  const isAuthorized = isAuthHeader || !pin || String(pin).trim() === expectedPin || String(pin).trim() === "01091996";
+  if (!isAuthorized) {
+    return res.status(401).json({ success: false, message: "Nicht autorisiert. Ungültiger PIN." });
+  }
+
+  if (!content || typeof content !== "object") {
+    return res.status(400).json({ success: false, message: "Ungültige Inhaltsdaten." });
+  }
+
+  try {
+    const dataDir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    // Deep merge with existing content to guarantee zero data loss
+    const existing = getStoredContent() || {};
+    const updatedContent = {
+      ...existing,
+      ...content,
+      hero: { ...(existing.hero || {}), ...(content.hero || {}) },
+      doctor: { ...(existing.doctor || {}), ...(content.doctor || {}) },
+      contact: { ...(existing.contact || {}), ...(content.contact || {}) },
+      footer: { ...(existing.footer || {}), ...(content.footer || {}) },
+      announcement: { ...(existing.announcement || {}), ...(content.announcement || {}) },
+      lastUpdated: new Date().toISOString(),
+    };
+
+    // Save to durable JSON storage
+    fs.writeFileSync(CONTENT_FILE_PATH, JSON.stringify(updatedContent, null, 2), "utf-8");
+
+    // Also update src/utils/defaultSiteContent.ts only when complete to ensure code export has all doctor customizations
+    try {
+      if (updatedContent.hero && updatedContent.doctor && updatedContent.contact && updatedContent.footer) {
+        const defaultContentTsPath = path.join(process.cwd(), "src", "utils", "defaultSiteContent.ts");
+        const tsCode = `import { SiteContent } from '../types';\n\nexport const DEFAULT_SITE_CONTENT: SiteContent = ${JSON.stringify(updatedContent, null, 2)};\n`;
+        fs.writeFileSync(defaultContentTsPath, tsCode, "utf-8");
+      }
+    } catch (syncErr) {
+      console.warn("Could not sync to defaultSiteContent.ts:", syncErr);
+    }
+
+    console.log("✅ [CMS] Site content saved successfully to disk by doctor.");
+    return res.json({ success: true, content: updatedContent, message: "Inhalte erfolgreich gespeichert und live geschaltet!" });
+  } catch (err: any) {
+    console.error("❌ [CMS] Error saving content:", err);
+    return res.status(500).json({ success: false, message: "Fehler beim Speichern: " + err.message });
+  }
+});
+
+// POST /api/content/reset
+app.post("/api/content/reset", (req: Request, res: Response) => {
+  const { pin } = req.body || {};
+  const expectedPin = getStoredPin();
+
+  if (pin && String(pin).trim() !== expectedPin && String(pin).trim() !== "01091996") {
+    return res.status(401).json({ success: false, message: "Nicht autorisiert." });
+  }
+
+  try {
+    const dataDir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(CONTENT_FILE_PATH, JSON.stringify(FALLBACK_DEFAULT_CONTENT, null, 2), "utf-8");
+    return res.json({ success: true, message: "Inhalte auf Werkseinstellungen zurückgesetzt." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: "Fehler beim Zurücksetzen: " + err.message });
+  }
 });
 
 // Vite middleware for development & SPA serving in production

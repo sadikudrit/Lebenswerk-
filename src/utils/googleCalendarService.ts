@@ -213,24 +213,23 @@ export async function createGoogleCalendarEvent(
   );
 
   const eventPayload = {
-    summary: `🩺 Physiotherapy: ${appointment.serviceName} (${appointment.patientName})`,
+    summary: `🩺 Physiotherapie LEBENSWERK: ${appointment.serviceName} (${appointment.patientName})`,
     description: [
-      `APEX PHYSIOTHERAPY & REHABILITATION CLINIC`,
-      `===========================================`,
-      `📌 Confirmation Code: ${appointment.confirmationCode}`,
+      `PHYSIOTHERAPIE LEBENSWERK - BIBERIST`,
+      `=====================================`,
+      `📌 Buchungscode: ${appointment.confirmationCode}`,
       `👤 Patient: ${appointment.patientName}`,
-      `📧 Email: ${appointment.patientEmail}`,
-      `📞 Phone: ${appointment.patientPhone}`,
-      `👨‍⚕️ Attending Specialist: ${appointment.specialistName}`,
-      `🩹 Focus Area: ${appointment.painArea} (Reported Pain: ${appointment.painLevel}/10)`,
-      `📝 Clinical Notes: ${appointment.symptomsNotes || 'None'}`,
-      `🏥 Consultation Format: ${appointment.meetingType === 'telehealth-video' ? 'Virtual Telehealth Video' : 'In-Clinic Treatment (Suite 400)'}`,
-      `💳 Fee: $${appointment.price}`,
-      `\nDirect Patient Portal: https://apexphysioclinic.com/portal`,
+      `📧 E-Mail: ${appointment.patientEmail}`,
+      `📞 Telefon: ${appointment.patientPhone}`,
+      `👨‍⚕️ Therapeut: ${appointment.specialistName}`,
+      `🩹 Behandlungsbereich: ${appointment.painArea} (Schmerzgrad: ${appointment.painLevel}/10)`,
+      `📝 Notizen: ${appointment.symptomsNotes || 'Keine'}`,
+      `🏥 Format: ${appointment.meetingType === 'home-visit' ? 'Domizilbehandlung (Hausbesuch)' : 'Praxisbehandlung Biberist (Hauptstrasse 19)'}`,
+      `\nKontakt: info@lebenswerk.praxismail.ch • 076 458 04 42`,
     ].join('\n'),
-    location: appointment.meetingType === 'telehealth-video'
-      ? 'Telehealth Video Conference Room (Apex Portal)'
-      : 'Apex Spine & Physical Health Center, Suite 400, Medical Plaza',
+    location: (appointment.treatmentLocation === 'home' || appointment.meetingType === 'home-visit')
+      ? ([appointment.streetAddress, appointment.zipCity].filter(Boolean).join(', ') || 'Patientenadresse (Hausbesuch Region Solothurn)')
+      : 'LEBENSWERK Praxis, Hauptstrasse 19, 4562 Biberist',
     start: {
       dateTime: `${startIso}`,
       timeZone: timeZone,

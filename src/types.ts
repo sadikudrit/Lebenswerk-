@@ -165,3 +165,80 @@ export interface BodyAreaPainPoint {
   recommendedPhysioSpecialty: string;
   selfCareAdvice: string;
 }
+
+export interface HeroContent {
+  badgeText: string;
+  headlineMain: string;
+  headlineHighlight: string;
+  paragraph1: string;
+  paragraph2: string;
+  scheduleTitle: string;
+  scheduleThursday: string;
+  scheduleFriday: string;
+  scheduleSaturday: string;
+}
+
+export interface DoctorContent {
+  sectionBadge: string;
+  sectionTitle: string;
+  sectionSubtitle: string;
+  roleBadge: string;
+  membershipBadge: string;
+  name: string;
+  title: string;
+  bioParagraph1: string;
+  bioParagraph2: string;
+  education: string;
+  languages: string;
+  specialties: string[];
+}
+
+export interface ContactContent {
+  addressName: string;
+  street: string;
+  zipCity: string;
+  phoneDisplay: string;
+  phoneRaw: string;
+  whatsappNumber: string;
+  whatsappDefaultText: string;
+  email: string;
+  hoursThursday: string;
+  hoursFriday: string;
+  hoursSaturday: string;
+}
+
+export interface AnnouncementContent {
+  enabled: boolean;
+  text: string;
+  badge?: string;
+  linkText?: string;
+  linkHref?: string;
+}
+
+export interface FooterContent {
+  bannerBadge: string;
+  bannerTitle: string;
+  bannerText: string;
+  bookingButtonText: string;
+  phoneButtonPrefix: string;
+  brandDescription: string;
+  locationBoxTitle: string;
+  locationBoxText: string;
+  whatsappButtonText: string;
+  hoursBoxTitle: string;
+  hoursOnlineBookingText: string;
+  partnerBadge: string;
+  partnerSubtext: string;
+  copyrightText: string;
+  bottomSubtitle: string;
+}
+
+export interface SiteContent {
+  hero: HeroContent;
+  doctor: DoctorContent;
+  contact: ContactContent;
+  announcement: AnnouncementContent;
+  footer: FooterContent;
+  lastUpdated?: string;
+}
+

@@ -13,12 +13,17 @@ import {
 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
-import { ServicesSection } from './components/ServicesSection';
 import { SpecialistsSection } from './components/SpecialistsSection';
 import { BookingModal } from './components/BookingModal';
 import { AiTriageModal } from './components/AiTriageModal';
 import { Footer } from './components/Footer';
+import { WordPressAdminBar } from './components/WordPressAdminBar';
+import { AnnouncementBar } from './components/AnnouncementBar';
+import { PraxisCmsModal } from './components/PraxisCmsModal';
+import { DoctorLoginModal } from './components/DoctorLoginModal';
+import { useSiteContent } from './context/SiteContentContext';
 import { Service, Physiotherapist, Appointment } from './types';
+import { doctorPhoto } from './assets';
 
 // Fallback initial services for LEBENSWERK Mobile Physiotherapie & Praxis Biberist
 const INITIAL_SERVICES: Service[] = [
@@ -112,7 +117,7 @@ const INITIAL_SPECIALISTS: Physiotherapist[] = [
   {
     id: "doc-1",
     name: "Vigan Musliu",
-    title: "Dipl. Physiotherapeut HF/FH & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Praxisleiter",
     credentials: [
       "Dipl. Physiotherapeut HF/FH",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
@@ -122,19 +127,31 @@ const INITIAL_SPECIALISTS: Physiotherapist[] = [
     experienceYears: 12,
     rating: 4.99,
     reviewsCount: 180,
-    avatar: "/src/assets/images/doctor_vigan_musliu_1787647012290.jpg",
-    bio: "Vigan Musliu bietet individuelle, persönliche und zuverlässige physiotherapeutische Betreuung an der Hauptstrasse 19 in 4562 Biberist sowie bei Hausbesuchen. Mit fundierter klinischer Erfahrung verbindet er evidenzbasierte manuelle Therapie, Schmerztherapie und aktive Rehabilitation.",
-    specialties: ["Klassische Physiotherapie", "Manuelle Therapie & Mobilisation", "Schmerztherapie & Triggerpunkte", "Neurologische Rehabilitation", "Rehabilitation nach Operationen"],
-    education: "Dipl. Physiotherapeut HF/FH • ZHAW / SRK Anerkannt",
+    avatar: doctorPhoto,
+    bio: "Als Physiotherapeut lege ich grossen Wert auf eine persönliche, individuelle und zielgerichtete Behandlung. Gemeinsam mit Ihnen analysiere ich Ihre Beschwerden und erarbeite einen Therapieplan, der auf Ihre persönlichen Bedürfnisse und Ziele abgestimmt ist.",
+    specialties: [
+      "Allgemeine und klassische Physiotherapie",
+      "Manuelle Therapie & Mobilisation",
+      "Rehabilitation nach Operationen und Verletzungen",
+      "Schmerztherapie",
+      "Kraft-, Beweglichkeits- und Koordinationstraining",
+      "Gangschule & Transfertraining",
+      "Gleichgewichtstraining & Sturzprävention",
+      "Orthopädische Rehabilitation",
+      "Förderung von Beweglichkeit, Kraft und Ausdauer",
+      "Domizilbehandlungen / Hausbesuche"
+    ],
+    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
     email: "info@lebenswerk.praxismail.ch",
     availableDays: ["Thu", "Fri", "Sat"],
     consultationFee: 130,
-    languages: ["Deutsch (Muttersprache)", "Englisch", "Französisch"],
+    languages: ["Deutsch", "Englisch", "Albanisch"],
     nextAvailable: "Do 18:00–21:00 | Fr 17:00–20:00 | Sa 08:00–14:00"
   }
 ];
 
 export default function App() {
+  const { content, isLoginModalOpen, closeLoginModal, openCmsModal } = useSiteContent();
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [specialists, setSpecialists] = useState<Physiotherapist[]>(INITIAL_SPECIALISTS);
 
@@ -192,6 +209,12 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-slate-900 selection:bg-teal-200 selection:text-teal-900">
       
+      {/* WordPress-like Top Admin Bar (visible when Doctor is authenticated) */}
+      <WordPressAdminBar />
+
+      {/* Global Top Announcement Bar */}
+      <AnnouncementBar />
+
       {/* Ambient background light nodes for rich frosted depth */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-teal-300/25 rounded-full blur-3xl" />
@@ -236,11 +259,6 @@ export default function App() {
           onOpenAiTriage={() => setIsAiTriageOpen(true)}
         />
 
-        <ServicesSection
-          services={services}
-          onSelectServiceForBooking={(serviceId) => handleOpenBooking(serviceId)}
-        />
-
         <SpecialistsSection
           specialists={specialists}
           onSelectSpecialistForBooking={(specId) => {
@@ -260,11 +278,11 @@ export default function App() {
       {/* Sticky Bottom Quick Action Dock for Mobile Devices (< md) */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-[#A5D6A7] p-2.5 px-4 md:hidden flex items-center justify-between gap-2 shadow-2xl safe-bottom">
         <a
-          href="tel:0764580442"
+          href={`tel:${content.contact.phoneRaw}`}
           className="flex-1 py-2.5 px-3 rounded-full bg-[#E8F5E9] hover:bg-[#A5D6A7]/50 text-[#1B5E20] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#A5D6A7] transition-all"
         >
           <Phone className="w-3.5 h-3.5 text-[#66BB6A]" />
-          <span className="truncate">076 458 04 42</span>
+          <span className="truncate">{content.contact.phoneDisplay}</span>
         </a>
 
         <button
@@ -286,6 +304,16 @@ export default function App() {
           <MapPin className="w-4 h-4 text-[#1B5E20]" />
         </a>
       </div>
+
+      {/* Doctor Login PIN Modal */}
+      <DoctorLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={closeLoginModal}
+        onSuccess={() => openCmsModal('hero')}
+      />
+
+      {/* Full-Featured WordPress-like Praxis CMS Modal */}
+      <PraxisCmsModal />
 
       {/* Modals */}
       <BookingModal

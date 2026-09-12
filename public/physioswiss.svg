@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 130" width="100%" height="100%" fill="none">
+  <!-- Physioswiss Logo -->
+  <g id="physioswiss-mark">
+    <!-- Golden Yellow Swiss Cross -->
+    <path d="M 45 15 L 75 15 L 75 45 L 140 45 L 140 75 L 75 75 L 75 115 L 45 115 L 45 75 L 15 75 L 15 45 L 45 45 Z" fill="#FBB034" />
+    
+    <!-- Wordmark "physio" -->
+    <text x="88" y="68" fill="#1C3888" font-family="'Plus Jakarta Sans', 'Arial Black', -apple-system, sans-serif" font-weight="900" font-style="italic" font-size="52" letter-spacing="-2px">
+      physio
+    </text>
+    
+    <!-- Wordmark "swiss" -->
+    <text x="165" y="104" fill="#1C3888" font-family="'Plus Jakarta Sans', 'Arial Black', -apple-system, sans-serif" font-weight="800" font-style="italic" font-size="34" letter-spacing="-0.5px">
+      swiss
+    </text>
+  </g>
+</svg>
