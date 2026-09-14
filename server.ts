@@ -949,9 +949,12 @@ app.post("/api/contact", async (req: Request, res: Response) => {
   const doctorEmail = process.env.DOCTOR_NOTIFICATION_EMAIL || process.env.SMTP_USER || "info@lebenswerk.praxismail.ch";
   const typeLabel = type === "appointment" ? "Terminanfrage" : type === "question" ? "Allgemeine Frage" : "Feedback";
 
+  let practiceEmailStatus: { success: boolean; provider: string; id?: string; error?: string } = { success: false, provider: 'none', error: 'Not attempted' };
+  let patientEmailStatus: { success: boolean; provider: string; id?: string; error?: string } = { success: false, provider: 'none', error: 'Not attempted' };
+
   try {
-    // Notify Practice
-    await dispatchEmail({
+    // 1. Notify Practice (Doctor)
+    practiceEmailStatus = await dispatchEmail({
       to: doctorEmail,
       subject: `🩺 [LEBENSWERK] Neue ${typeLabel} von ${newInquiry.firstName} ${newInquiry.lastName}`,
       html: `
@@ -981,13 +984,52 @@ app.post("/api/contact", async (req: Request, res: Response) => {
         </div>
       `
     });
-  } catch (emailErr) {
-    console.warn("Could not dispatch inquiry email:", emailErr);
+  } catch (emailErr: any) {
+    console.warn("Could not dispatch practice inquiry email:", emailErr);
+    practiceEmailStatus = { success: false, provider: 'error', error: emailErr.message || String(emailErr) };
+  }
+
+  try {
+    // 2. Send Confirmation Email to Patient / Tester
+    if (newInquiry.email && newInquiry.email.includes('@')) {
+      patientEmailStatus = await dispatchEmail({
+        to: newInquiry.email,
+        subject: `Ihre ${typeLabel} bei LEBENSWERK Physiotherapie (${newInquiry.firstName} ${newInquiry.lastName})`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; padding: 24px; border: 1px solid #A5D6A7; border-radius: 16px; background: #ffffff; color: #1B5E20;">
+            <div style="background: #1B5E20; color: #E8F5E9; padding: 20px; border-radius: 12px; text-align: center;">
+              <h2 style="margin: 0; font-size: 20px;">Vielen Dank für Ihre Anfrage!</h2>
+              <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;">LEBENSWERK Physiotherapie • Vigan Musliu</p>
+            </div>
+            <div style="margin-top: 20px; font-size: 14px; line-height: 1.6;">
+              <p>Guten Tag <strong>${newInquiry.firstName} ${newInquiry.lastName}</strong>,</p>
+              <p>wir haben Ihre ${typeLabel} erfolgreich erhalten. Wir melden uns zeitnah persönlich bei Ihnen, um Ihren Termin abzustimmen.</p>
+              <div style="background: #E8F5E9; padding: 16px; border-radius: 12px; border: 1px solid #A5D6A7; margin: 16px 0;">
+                <p style="margin: 0 0 8px;"><strong>Therapie:</strong> ${newInquiry.serviceName}</p>
+                <p style="margin: 0 0 8px;"><strong>Ort:</strong> ${newInquiry.treatmentLocation === 'home' ? '🏡 Mobile Hausbesuche' : '🏥 Praxis Biberist (Hauptstrasse 19)'}</p>
+                ${newInquiry.preferredDate ? `<p style="margin: 0 0 8px;"><strong>Wunschtermin:</strong> ${newInquiry.preferredDate}</p>` : ''}
+                <p style="margin: 0;"><strong>Telefon:</strong> ${newInquiry.phone}</p>
+              </div>
+              <p style="font-size: 13px; color: #4B7A50;">Haben Sie eine dringende Frage? Sie erreichen uns direkt unter <a href="tel:+41764580442" style="color: #1B5E20; font-weight: bold;">076 458 04 42</a> oder per E-Mail an <a href="mailto:info@lebenswerk.praxismail.ch" style="color: #1B5E20;">info@lebenswerk.praxismail.ch</a>.</p>
+              <hr style="border: none; border-top: 1px solid #E8F5E9; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #4B7A50; margin: 0;">Freundliche Grüsse<br><strong>Vigan Musliu</strong><br>Dipl. Physiotherapeut & Inhaber • LEBENSWERK Physiotherapie</p>
+            </div>
+          </div>
+        `
+      });
+    }
+  } catch (emailErr: any) {
+    console.warn("Could not dispatch patient confirmation email:", emailErr);
+    patientEmailStatus = { success: false, provider: 'error', error: emailErr.message || String(emailErr) };
   }
 
   res.status(201).json({
     success: true,
-    inquiry: newInquiry
+    inquiry: newInquiry,
+    emailDelivery: {
+      practice: practiceEmailStatus,
+      patient: patientEmailStatus
+    }
   });
 });
 

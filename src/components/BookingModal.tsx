@@ -73,6 +73,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     description: string;
     location?: string;
     serviceName?: string;
+    emailNotice?: { sent: boolean; message?: string };
   } | null>(null);
 
   // Synchronize initial selections when opened
@@ -148,6 +149,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
       const data = await response.json();
 
+      let emailNotice: { sent: boolean; message?: string } | undefined;
+      if (data.emailDelivery?.patient?.success) {
+        emailNotice = {
+          sent: true,
+          message: `Bestätigungs-E-Mail wurde an ${mobileAddress.trim()} gesendet.`,
+        };
+      } else if (data.emailDelivery?.practice?.success) {
+        emailNotice = {
+          sent: true,
+          message: `Anfrage an Praxis übermittelt.`,
+        };
+      } else if (data.emailDelivery?.patient?.error) {
+        emailNotice = {
+          sent: false,
+          message: data.emailDelivery.patient.error,
+        };
+      }
+
       const resultObj = {
         confirmationCode: data.inquiry?.id ? data.inquiry.id.slice(-6).toUpperCase() : confCode,
         type: requestType,
@@ -158,6 +177,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         description: description.trim(),
         location: requestType === 'appointment' ? (treatmentLocation === 'home' ? 'Mobile Hausbesuche' : 'Praxis Biberist (Hauptstr. 19)') : undefined,
         serviceName: requestType === 'appointment' ? serviceName : undefined,
+        emailNotice,
       };
 
       setSubmissionResult(resultObj);
@@ -275,6 +295,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <p className="text-xs sm:text-sm text-[#1B5E20]/80 max-w-md mx-auto leading-relaxed">
                   Ihre {submissionResult.type === 'appointment' ? 'Terminanfrage' : submissionResult.type === 'question' ? 'Frage' : 'Rückmeldung'} wurde direkt an Dipl. Physiotherapeut <strong>Vigan Musliu</strong> übermittelt.
                 </p>
+
+                {submissionResult.emailNotice && (
+                  <div
+                    className={`mt-2 py-1.5 px-3.5 rounded-full inline-flex items-center gap-1.5 text-xs font-semibold max-w-md mx-auto ${
+                      submissionResult.emailNotice.sent
+                        ? 'bg-[#E8F5E9] text-[#1B5E20] border border-[#A5D6A7]'
+                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <span>{submissionResult.emailNotice.message}</span>
+                  </div>
+                )}
               </div>
 
               {/* Summary Card */}
