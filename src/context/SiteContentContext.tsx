@@ -67,9 +67,6 @@ export const SiteContentProvider: React.FC<{ children: React.ReactNode }> = ({ c
           parsed.hero.scheduleFriday = DEFAULT_SITE_CONTENT.hero.scheduleFriday;
           parsed.hero.scheduleSaturday = DEFAULT_SITE_CONTENT.hero.scheduleSaturday;
         }
-        if (parsed.doctor?.education?.includes('Hier sollte') || parsed.doctor?.education?.includes('ZHAW') || parsed.doctor?.education?.includes('HF/FH')) {
-          parsed.doctor.education = DEFAULT_SITE_CONTENT.doctor.education;
-        }
         if (parsed.doctor?.sectionSubtitle?.includes('HF/FH')) {
           parsed.doctor.sectionSubtitle = DEFAULT_SITE_CONTENT.doctor.sectionSubtitle;
         }

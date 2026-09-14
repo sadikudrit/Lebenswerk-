@@ -1296,7 +1296,7 @@ const FALLBACK_DEFAULT_CONTENT = {
     title: "Dipl. Physiotherapeut & Praxisleiter",
     bioParagraph1: "Als Physiotherapeut lege ich grossen Wert auf eine persönliche, individuelle und\nzielgerichtete Behandlung. Gemeinsam mit Ihnen analysiere ich Ihre Beschwerden und\nerarbeite einen Therapieplan, der auf Ihre persönlichen Bedürfnisse und Ziele abgestimmt\nist.",
     bioParagraph2: "Meine Behandlung verbindet aktive Rehabilitation, manuelle therapeutische Massnahmen,\nBewegungsförderung und gezieltes Training.\nMein Ziel ist es, Ihre Beweglichkeit und körperliche Funktion zu verbessern, Beschwerden\nzu reduzieren und Ihnen mehr Sicherheit und Selbstständigkeit im Alltag zu ermöglichen.",
-    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
+    education: "Hier sollte die Berufsbezeichnung genau so angegeben werden, wie sie auf Ihrer Schweizer Anerkennung bzw. Ihrem Diplom bestätigt ist. Wenn Ihr ausländischer Physiotherapieabschluss durch das SRK anerkannt wurde, empfiehlt sich beispielsweise eine sachliche Formulierung wie: Physiotherapeut, in der Schweiz SRK-anerkannt. Eine Institution wie ZHAW sollte nur genannt werden, wenn dort tatsächlich ein entsprechender Abschluss oder eine Weiterbildung absolviert wurde",
     languages: "Deutsch, Englisch, Albanisch",
     specialties: [
       "Allgemeine und klassische Physiotherapie",

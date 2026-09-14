@@ -60,7 +60,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
       "Postoperative Rehabilitation",
       "Triggerpunkt- & Schmerztherapie"
     ],
-    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
+    education: "Hier sollte die Berufsbezeichnung genau so angegeben werden, wie sie auf Ihrer Schweizer Anerkennung bzw. Ihrem Diplom bestätigt ist. Wenn Ihr ausländischer Physiotherapieabschluss durch das SRK anerkannt wurde, empfiehlt sich beispielsweise eine sachliche Formulierung wie: Physiotherapeut, in der Schweiz SRK-anerkannt. Eine Institution wie ZHAW sollte nur genannt werden, wenn dort tatsächlich ein entsprechender Abschluss oder eine Weiterbildung absolviert wurde",
     availableDays: ["Thu", "Fri", "Sat"],
     consultationFee: 130,
     languages: ["Deutsch", "Englisch", "Albanisch"],
@@ -226,7 +226,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
                     <GraduationCap className="w-4 h-4 text-[#66BB6A] shrink-0" />
                     <span>Ausbildung & Anerkennung</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-[#1B5E20]/85 font-normal leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#1B5E20]/85 font-normal leading-relaxed whitespace-pre-line">
                     {content.doctor.education}
                   </p>
                 </div>

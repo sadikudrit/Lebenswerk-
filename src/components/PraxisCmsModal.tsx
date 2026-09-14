@@ -473,29 +473,32 @@ export const PraxisCmsModal: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Ausbildung & Anerkennung:
-                    </label>
-                    <input
-                      type="text"
-                      value={content.doctor.education}
-                      onChange={(e) => updateDoctor({ education: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-[#1B5E20]"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Sprachen:
-                    </label>
-                    <input
-                      type="text"
-                      value={content.doctor.languages}
-                      onChange={(e) => updateDoctor({ languages: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-[#1B5E20]"
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Ausbildung & Anerkennung:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={content.doctor.education}
+                    onChange={(e) => updateDoctor({ education: e.target.value })}
+                    placeholder="z.B. Physiotherapeut, in der Schweiz SRK-anerkannt"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 focus:border-[#1B5E20] text-xs font-medium text-[#1B5E20] leading-relaxed"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Genaue Berufsbezeichnung und anerkannte Schweizer Diplome (z.B. SRK-Anerkennung).
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Sprachen:
+                  </label>
+                  <input
+                    type="text"
+                    value={content.doctor.languages}
+                    onChange={(e) => updateDoctor({ languages: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-[#1B5E20]"
+                  />
                 </div>
 
                 {/* Specialties Management */}
