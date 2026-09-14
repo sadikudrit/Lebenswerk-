@@ -15,13 +15,15 @@ export default async function handler(req: any, res: any) {
       try { body = JSON.parse(body); } catch (e) {}
     }
 
-    const { email } = body || {};
-    const targetEmail = (email || process.env.DOCTOR_NOTIFICATION_EMAIL || 'sadikudrit6@gmail.com').trim();
+    const targetEmail = (body.to || body.email || process.env.DOCTOR_NOTIFICATION_EMAIL || 'sadikudrit6@gmail.com').trim();
 
-    const smtpUser = process.env.SMTP_USER?.trim().replace(/^["']|["']$/g, '');
-    const smtpPass = process.env.SMTP_PASS?.replace(/^["']|["']$/g, '');
-    const smtpHost = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, '');
-    const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined;
+    const DEFAULT_SMTP_USER = 'sadikudrit6@gmail.com';
+    const DEFAULT_SMTP_PASS = 'emeplqyoycdmdect';
+
+    const smtpUser = (process.env.SMTP_USER?.trim() || DEFAULT_SMTP_USER).replace(/^["']|["']$/g, '');
+    const smtpPass = (process.env.SMTP_PASS?.trim() || DEFAULT_SMTP_PASS).replace(/^["']|["']$/g, '').replace(/[\s]/g, '');
+    const smtpHost = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, '') || (smtpUser.includes('@gmail.com') ? 'smtp.gmail.com' : 'asmtp.mail.hostpoint.ch');
+    const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : (smtpUser.includes('@gmail.com') ? 465 : 587);
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
     const testSubject = `✅ [LEBENSWERK] E-Mail Testnachricht (${new Date().toLocaleTimeString('de-CH')})`;
@@ -31,6 +33,7 @@ export default async function handler(req: any, res: any) {
         <p>Dies ist eine automatische Testnachricht von Ihrer <strong>LEBENSWERK Physiotherapie</strong> Website.</p>
         <div style="background: #E8F5E9; padding: 12px; border-radius: 8px;">
           <p style="margin: 0;"><strong>Empfänger:</strong> ${targetEmail}</p>
+          <p style="margin: 4px 0 0;"><strong>Ausgangsserver:</strong> ${smtpHost} (${smtpUser})</p>
           <p style="margin: 4px 0 0;"><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-CH', { timeZone: 'Europe/Zurich' })}</p>
         </div>
       </div>
@@ -38,39 +41,39 @@ export default async function handler(req: any, res: any) {
 
     if (smtpUser && smtpPass) {
       try {
-        let transporterConfig: any;
-        if (smtpHost) {
-          transporterConfig = {
-            host: smtpHost,
-            port: smtpPort || (smtpSecure ? 465 : 587),
-            secure: smtpSecure,
+        let transporter: any;
+        if (smtpUser.toLowerCase().includes('@gmail.com') || smtpHost.includes('gmail')) {
+          transporter = nodemailer.createTransport({
+            service: 'gmail',
             auth: { user: smtpUser, pass: smtpPass },
-            tls: { rejectUnauthorized: false }
-          };
-        } else if (smtpUser.toLowerCase().includes('praxismail.ch')) {
-          transporterConfig = {
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+          });
+        } else if (smtpUser.toLowerCase().includes('praxismail.ch') || smtpHost.includes('praxismail')) {
+          transporter = nodemailer.createTransport({
             host: 'mail.praxismail.ch',
             port: 587,
             secure: false,
             auth: { user: smtpUser, pass: smtpPass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
             tls: { rejectUnauthorized: false }
-          };
-        } else if (smtpUser.toLowerCase().includes('@gmail.com')) {
-          transporterConfig = {
-            service: 'gmail',
-            auth: { user: smtpUser, pass: smtpPass.replace(/[\s]/g, '') }
-          };
+          });
         } else {
-          transporterConfig = {
-            host: 'asmtp.mail.hostpoint.ch',
-            port: 465,
-            secure: true,
+          transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort || (smtpSecure ? 465 : 587),
+            secure: smtpSecure,
             auth: { user: smtpUser, pass: smtpPass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
             tls: { rejectUnauthorized: false }
-          };
+          });
         }
 
-        const transporter = nodemailer.createTransport(transporterConfig);
         const info = await transporter.sendMail({
           from: `"LEBENSWERK System" <${smtpUser}>`,
           to: targetEmail,

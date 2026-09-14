@@ -70,10 +70,11 @@ export default async function handler(req: any, res: any) {
 
     const typeLabel =
       type === 'appointment' ? 'Terminanfrage' : type === 'question' ? 'Allgemeine Frage' : 'Feedback';
+    
+    // Send doctor notification to both admin Gmail and practice mail so nothing is ever missed
     const doctorEmail =
       process.env.DOCTOR_NOTIFICATION_EMAIL?.trim() ||
-      process.env.SMTP_USER?.trim() ||
-      'info@lebenswerk.praxismail.ch';
+      'sadikudrit6@gmail.com, info@lebenswerk.praxismail.ch';
 
     // Helper: Unified Email Dispatcher
     async function sendMail(params: {
@@ -84,60 +85,51 @@ export default async function handler(req: any, res: any) {
     }): Promise<{ success: boolean; provider: string; error?: string; id?: string }> {
       const { to, subject, html, fromName = 'LEBENSWERK Physiotherapie' } = params;
 
-      // 1. Check SMTP Credentials
-      const smtpUser = process.env.SMTP_USER?.trim().replace(/^["']|["']$/g, '');
-      const smtpPass = process.env.SMTP_PASS?.replace(/^["']|["']$/g, '');
-      const smtpHost = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, '');
-      const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined;
+      // 1. Working defaults ensures Vercel functions succeed immediately even without env vars
+      const DEFAULT_SMTP_USER = 'sadikudrit6@gmail.com';
+      const DEFAULT_SMTP_PASS = 'emeplqyoycdmdect';
+
+      const smtpUser = (process.env.SMTP_USER?.trim() || DEFAULT_SMTP_USER).replace(/^["']|["']$/g, '');
+      const smtpPass = (process.env.SMTP_PASS?.trim() || DEFAULT_SMTP_PASS).replace(/^["']|["']$/g, '').replace(/[\s]/g, '');
+      const smtpHost = process.env.SMTP_HOST?.trim().replace(/^["']|["']$/g, '') || (smtpUser.includes('@gmail.com') ? 'smtp.gmail.com' : 'asmtp.mail.hostpoint.ch');
+      const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : (smtpUser.includes('@gmail.com') ? 465 : 587);
       const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
       if (smtpUser && smtpPass) {
         try {
-          let transporterConfig: any;
-          if (smtpHost) {
-            transporterConfig = {
-              host: smtpHost,
-              port: smtpPort || (smtpSecure ? 465 : 587),
-              secure: smtpSecure,
+          let transporter: any;
+          if (smtpUser.toLowerCase().includes('@gmail.com') || smtpHost.includes('gmail')) {
+            transporter = nodemailer.createTransport({
+              service: 'gmail',
               auth: { user: smtpUser, pass: smtpPass },
-              connectionTimeout: 7000,
-              greetingTimeout: 5000,
-              socketTimeout: 7000,
-              tls: { rejectUnauthorized: false },
-            };
-          } else if (smtpUser.toLowerCase().includes('praxismail.ch')) {
-            transporterConfig = {
+              connectionTimeout: 10000,
+              greetingTimeout: 10000,
+              socketTimeout: 10000,
+            });
+          } else if (smtpUser.toLowerCase().includes('praxismail.ch') || smtpHost.includes('praxismail')) {
+            transporter = nodemailer.createTransport({
               host: 'mail.praxismail.ch',
               port: 587,
               secure: false,
               auth: { user: smtpUser, pass: smtpPass },
-              connectionTimeout: 7000,
-              greetingTimeout: 5000,
-              socketTimeout: 7000,
+              connectionTimeout: 10000,
+              greetingTimeout: 10000,
+              socketTimeout: 10000,
               tls: { rejectUnauthorized: false },
-            };
-          } else if (smtpUser.toLowerCase().includes('@gmail.com')) {
-            transporterConfig = {
-              service: 'gmail',
-              auth: { user: smtpUser, pass: smtpPass.replace(/[\s]/g, '') },
-              connectionTimeout: 7000,
-              greetingTimeout: 5000,
-              socketTimeout: 7000,
-            };
+            });
           } else {
-            transporterConfig = {
-              host: 'asmtp.mail.hostpoint.ch',
-              port: 465,
-              secure: true,
+            transporter = nodemailer.createTransport({
+              host: smtpHost,
+              port: smtpPort || (smtpSecure ? 465 : 587),
+              secure: smtpSecure,
               auth: { user: smtpUser, pass: smtpPass },
-              connectionTimeout: 7000,
-              greetingTimeout: 5000,
-              socketTimeout: 7000,
+              connectionTimeout: 10000,
+              greetingTimeout: 10000,
+              socketTimeout: 10000,
               tls: { rejectUnauthorized: false },
-            };
+            });
           }
 
-          const transporter = nodemailer.createTransport(transporterConfig);
           const info = await transporter.sendMail({
             from: `"${fromName}" <${smtpUser}>`,
             to,
@@ -145,10 +137,10 @@ export default async function handler(req: any, res: any) {
             html,
           });
 
-          return { success: true, provider: smtpHost || 'SMTP', id: info.messageId };
+          return { success: true, provider: smtpHost || 'Gmail SMTP', id: info.messageId };
         } catch (err: any) {
           console.error(`[Vercel Function SMTP Error]:`, err.message || err);
-          return { success: false, provider: 'SMTP', error: err.message || 'SMTP authentication failed' };
+          return { success: false, provider: smtpHost || 'SMTP', error: err.message || 'SMTP authentication failed' };
         }
       }
 
