@@ -119,7 +119,7 @@ const INITIAL_SPECIALISTS: Physiotherapist[] = [
     name: "Vigan Musliu",
     title: "Dipl. Physiotherapeut & Praxisleiter",
     credentials: [
-      "Dipl. Physiotherapeut HF/FH",
+      "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
       "Mitglied Physioswiss",
       "Zertifiziert in Manueller Therapie & Rehabilitation"

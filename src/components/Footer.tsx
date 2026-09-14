@@ -41,7 +41,7 @@ export const Footer: React.FC<FooterProps> = ({
     partnerBadge: 'Offizieller Verbandspartner',
     partnerSubtext: 'Mitglied beim Schweizer Physiotherapie Verband (physioswiss)',
     copyrightText: 'LEBENSWERK Physiotherapie',
-    bottomSubtitle: 'Dipl. Physiotherapie HF/FH',
+    bottomSubtitle: 'Praxis für Physiotherapie & Domizilbehandlungen',
   };
 
   return (
@@ -264,7 +264,7 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
             <span>{content.contact.zipCity}, Schweiz</span>
             <span>•</span>
-            <span>{footerData.bottomSubtitle || 'Dipl. Physiotherapie HF/FH'}</span>
+            <span>{footerData.bottomSubtitle || 'Praxis für Physiotherapie & Domizilbehandlungen'}</span>
             <span>•</span>
             <button
               onClick={() => (isAuthenticated ? openCmsModal('footer') : openLoginModal())}

@@ -238,7 +238,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {submissionResult ? 'Anfrage erfolgreich gesendet' : 'Termin, Frage & Feedback'}
               </h2>
               <p className="text-xs text-[#1B5E20]/80 font-medium">
-                Vigan Musliu • Dipl. Physiotherapeut HF/FH
+                Vigan Musliu • Dipl. Physiotherapeut & Praxisleiter
               </p>
             </div>
           </div>

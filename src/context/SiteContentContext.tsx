@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { SiteContent, HeroContent, DoctorContent, ContactContent, AnnouncementContent, FooterContent } from '../types';
 import { DEFAULT_SITE_CONTENT } from '../utils/defaultSiteContent';
 
-const STORAGE_KEY = 'lebenswerk_site_content_v1';
+const STORAGE_KEY = 'lebenswerk_site_content_v6';
 const AUTH_KEY = 'lebenswerk_cms_auth_token';
 
 export type CmsTabType = 'hero' | 'doctor' | 'contact' | 'footer' | 'announcement' | 'settings';
@@ -66,6 +66,18 @@ export const SiteContentProvider: React.FC<{ children: React.ReactNode }> = ({ c
           parsed.hero.scheduleThursday = DEFAULT_SITE_CONTENT.hero.scheduleThursday;
           parsed.hero.scheduleFriday = DEFAULT_SITE_CONTENT.hero.scheduleFriday;
           parsed.hero.scheduleSaturday = DEFAULT_SITE_CONTENT.hero.scheduleSaturday;
+        }
+        if (parsed.doctor?.education?.includes('Hier sollte') || parsed.doctor?.education?.includes('ZHAW') || parsed.doctor?.education?.includes('HF/FH')) {
+          parsed.doctor.education = DEFAULT_SITE_CONTENT.doctor.education;
+        }
+        if (parsed.doctor?.sectionSubtitle?.includes('HF/FH')) {
+          parsed.doctor.sectionSubtitle = DEFAULT_SITE_CONTENT.doctor.sectionSubtitle;
+        }
+        if (parsed.doctor?.title?.includes('HF/FH')) {
+          parsed.doctor.title = DEFAULT_SITE_CONTENT.doctor.title;
+        }
+        if (parsed.footer?.bottomSubtitle?.includes('HF/FH')) {
+          parsed.footer.bottomSubtitle = DEFAULT_SITE_CONTENT.footer.bottomSubtitle;
         }
 
         return {

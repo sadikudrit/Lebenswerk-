@@ -283,9 +283,9 @@ const specialists = [
     name: "Vigan Musliu",
     email: "info@lebenswerk.praxismail.ch",
     phone: "076 458 04 42",
-    title: "Dipl. Physiotherapeut HF/FH & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Praxisleiter",
     credentials: [
-      "Dipl. Physiotherapeut HF/FH",
+      "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
       "Mitglied Physioswiss",
       "Zertifiziert in Manueller Therapie & Rehabilitation"
@@ -296,7 +296,7 @@ const specialists = [
     avatar: "/doctor_vigan.jpg",
     bio: "Vigan Musliu bietet individuelle, persönliche und zuverlässige physiotherapeutische Betreuung an der Hauptstrasse 19 in 4562 Biberist sowie bei Hausbesuchen. Mit langjähriger klinischer Erfahrung verbindet er manuelle Therapie, Schmerztherapie und gezielte Bewegungstherapie.",
     specialties: ["Klassische Physiotherapie", "Manuelle Therapie & Mobilisation", "Schmerztherapie & Triggerpunkte", "Neurologische Rehabilitation", "Rehabilitation nach Operationen"],
-    education: "Dipl. Physiotherapeut HF/FH • ZHAW / SRK Anerkannt",
+    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
     availableDays: ["Thu", "Fri", "Sat"],
     consultationFee: 130,
     languages: ["Deutsch", "Englisch", "Albanisch"],
@@ -1289,14 +1289,14 @@ const FALLBACK_DEFAULT_CONTENT = {
   doctor: {
     sectionBadge: "Praxis Biberist & Domizilbehandlung",
     sectionTitle: "Vigan Musliu",
-    sectionSubtitle: "Dipl. Physiotherapeut HF/FH • SRK-Anerkannt • Experte für Bewegungstherapie & Rehabilitation",
+    sectionSubtitle: "Dipl. Physiotherapeut • SRK-Anerkannt • Experte für Bewegungstherapie & Rehabilitation",
     roleBadge: "Praxisleiter & Dipl. Physiotherapeut",
     membershipBadge: "Physioswiss Mitglied",
     name: "Vigan Musliu",
     title: "Dipl. Physiotherapeut & Praxisleiter",
     bioParagraph1: "Als Physiotherapeut lege ich grossen Wert auf eine persönliche, individuelle und\nzielgerichtete Behandlung. Gemeinsam mit Ihnen analysiere ich Ihre Beschwerden und\nerarbeite einen Therapieplan, der auf Ihre persönlichen Bedürfnisse und Ziele abgestimmt\nist.",
     bioParagraph2: "Meine Behandlung verbindet aktive Rehabilitation, manuelle therapeutische Massnahmen,\nBewegungsförderung und gezieltes Training.\nMein Ziel ist es, Ihre Beweglichkeit und körperliche Funktion zu verbessern, Beschwerden\nzu reduzieren und Ihnen mehr Sicherheit und Selbstständigkeit im Alltag zu ermöglichen.",
-    education: "Hier sollte die Berufsbezeichnung genau so angegeben werden, wie sie auf Ihrer Schweizer Anerkennung bzw. Ihrem Diplom bestätigt ist. Wenn Ihr ausländischer Physiotherapieabschluss durch das SRK anerkannt wurde, empfiehlt sich beispielsweise eine sachliche Formulierung wie: Physiotherapeut, in der Schweiz SRK-anerkannt. Eine Institution wie ZHAW sollte nur genannt werden, wenn dort tatsächlich ein entsprechender Abschluss oder eine Weiterbildung absolviert wurde.",
+    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
     languages: "Deutsch, Englisch, Albanisch",
     specialties: [
       "Allgemeine und klassische Physiotherapie",

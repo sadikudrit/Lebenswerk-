@@ -40,12 +40,12 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
   const leadDoctor = specialists[0] || {
     id: "doc-1",
     name: "Vigan Musliu",
-    title: "Dipl. Physiotherapeut HF/FH & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Praxisleiter",
     credentials: [
-      "Dipl. Physiotherapeut HF/FH",
+      "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
       "Mitglied Physioswiss (Schweizer Physiotherapie Verband)",
-      "Zertifiziert in Manueller Therapie & Neurologischer Rehabilitation"
+      "Zertifiziert in Manueller Therapie & Rehabilitation"
     ],
     experienceYears: 12,
     rating: 4.99,
@@ -60,7 +60,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
       "Postoperative Rehabilitation",
       "Triggerpunkt- & Schmerztherapie"
     ],
-    education: "Dipl. Physiotherapeut HF/FH • Schweizerisches Rotes Kreuz (SRK) Anerkannt",
+    education: "Physiotherapeut, in der Schweiz SRK-anerkannt",
     availableDays: ["Thu", "Fri", "Sat"],
     consultationFee: 130,
     languages: ["Deutsch", "Englisch", "Albanisch"],
@@ -154,7 +154,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
                   className="absolute -top-2.5 sm:-top-3 -right-2 sm:-right-4 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl bg-[#1B5E20] text-[#E8F5E9] text-xs font-bold shadow-lg flex items-center gap-1.5 sm:gap-2 border-2 border-white"
                 >
                   <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#66BB6A]" />
-                  <span>Dipl. Physiotherapeut HF/FH</span>
+                  <span>{content.doctor.roleBadge || 'Dipl. Physiotherapeut • SRK-Anerkannt'}</span>
                 </motion.div>
 
                 {/* Swiss Accreditations & WhatsApp Direct Link Under Photo */}

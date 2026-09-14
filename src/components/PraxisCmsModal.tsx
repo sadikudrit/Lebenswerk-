@@ -1003,13 +1003,13 @@ export const PraxisCmsModal: React.FC = () => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-xs font-bold text-slate-700">
-                        Qualifikations-Zusatz (z.B. Dipl. Physiotherapie HF/FH):
+                        Qualifikations-Zusatz (z.B. Praxis für Physiotherapie & Domizilbehandlungen):
                       </label>
                       <input
                         type="text"
                         value={content.footer?.bottomSubtitle || ''}
                         onChange={(e) => updateFooter({ bottomSubtitle: e.target.value })}
-                        placeholder="Dipl. Physiotherapie HF/FH"
+                        placeholder="Praxis für Physiotherapie & Domizilbehandlungen"
                         className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium"
                       />
                     </div>
