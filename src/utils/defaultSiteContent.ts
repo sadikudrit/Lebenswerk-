@@ -72,5 +72,5 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     "copyrightText": "© 2026 Physiotherapie LEBENSWERK • Alle Rechte vorbehalten.",
     "bottomSubtitle": "Praxis für Physiotherapie & Domizilbehandlungen • Hauptstrasse 19, 4562 Biberist"
   },
-  "lastUpdated": "2026-09-12T09:34:52.132Z"
+  "lastUpdated": "2026-09-14T13:43:41.951Z"
 };
