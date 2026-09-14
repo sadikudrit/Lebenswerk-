@@ -40,7 +40,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
   const leadDoctor = specialists[0] || {
     id: "doc-1",
     name: "Vigan Musliu",
-    title: "Dipl. Physiotherapeut & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Inhaber",
     credentials: [
       "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
@@ -189,7 +189,7 @@ export const SpecialistsSection: React.FC<SpecialistsSectionProps> = ({
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="px-2.5 sm:px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-[11px] sm:text-xs font-extrabold uppercase tracking-wide border border-[#A5D6A7]">
-                    {content.doctor.roleBadge || 'Praxisleiter & Dipl. Physiotherapeut'}
+                    {content.doctor.roleBadge || 'Inhaber & Dipl. Physiotherapeut'}
                   </span>
                   <span className="px-2.5 sm:px-3 py-1 rounded-full bg-white text-[#1B5E20] text-[11px] sm:text-xs font-bold border border-[#A5D6A7] flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#66BB6A]" /> {content.doctor.membershipBadge || 'Physioswiss Mitglied'}

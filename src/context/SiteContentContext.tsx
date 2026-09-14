@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { SiteContent, HeroContent, DoctorContent, ContactContent, AnnouncementContent, FooterContent } from '../types';
 import { DEFAULT_SITE_CONTENT } from '../utils/defaultSiteContent';
 
-const STORAGE_KEY = 'lebenswerk_site_content_v6';
+const STORAGE_KEY = 'lebenswerk_site_content_v8';
 const AUTH_KEY = 'lebenswerk_cms_auth_token';
 
 export type CmsTabType = 'hero' | 'doctor' | 'contact' | 'footer' | 'announcement' | 'settings';
@@ -39,6 +39,9 @@ const SiteContentContext = createContext<SiteContentContextType | undefined>(und
 export const SiteContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(() => {
     try {
+      ['praxis_site_content_v2', 'lebenswerk_site_content_v5', 'lebenswerk_site_content_v6', 'lebenswerk_site_content_v7'].forEach((k) => {
+        try { localStorage.removeItem(k); } catch {}
+      });
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);

@@ -283,7 +283,7 @@ const specialists = [
     name: "Vigan Musliu",
     email: "info@lebenswerk.praxismail.ch",
     phone: "076 458 04 42",
-    title: "Dipl. Physiotherapeut & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Inhaber",
     credentials: [
       "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
@@ -1216,7 +1216,7 @@ Please provide a concise, structured JSON clinical triage recommendation with th
 1. "urgencyLevel": "Low (Standard Rehab)" | "Moderate (Prompt Evaluation Recommended)" | "High (Immediate Orthopedic/Medical Review Required)"
 2. "suspectedPathology": A clear, 1-2 sentence clinical assessment of possible musculoskeletal causes (e.g. disc herniation, rotator cuff impingement, myofascial trigger point, patellofemoral syndrome).
 3. "recommendedService": Recommended physiotherapy modality name from our clinic (options: "Spinal Rehabilitation & Disc Therapy", "Sports Injury & Athletic Performance Rehab", "Post-Surgical Joint & Mobility Restoration", "Dry Needling & Advanced Trigger Point Therapy", "Posture Correction & Ergonomic Health", "Virtual Physiotherapy & Tele-Rehab Consultation").
-4. "recommendedSpecialist": "Vigan Musliu, Dipl. Physiotherapeut & Praxisleiter" (Praxis Biberist & Domizilbehandlungen).
+4. "recommendedSpecialist": "Vigan Musliu, Dipl. Physiotherapeut & Inhaber" (Praxis Biberist & Domizilbehandlungen).
 5. "immediateSelfCareAdvice": 3 practical bullet points for acute relief before the appointment (e.g. ice vs heat, gentle unloading postures, movements to avoid).
 6. "questionsToPrepare": 2 questions the patient should be ready to discuss with their physiotherapist.
 
@@ -1290,10 +1290,10 @@ const FALLBACK_DEFAULT_CONTENT = {
     sectionBadge: "Praxis Biberist & Domizilbehandlung",
     sectionTitle: "Vigan Musliu",
     sectionSubtitle: "Dipl. Physiotherapeut • SRK-Anerkannt • Experte für Bewegungstherapie & Rehabilitation",
-    roleBadge: "Praxisleiter & Dipl. Physiotherapeut",
+    roleBadge: "Inhaber & Dipl. Physiotherapeut",
     membershipBadge: "Physioswiss Mitglied",
     name: "Vigan Musliu",
-    title: "Dipl. Physiotherapeut & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Inhaber",
     bioParagraph1: "Als Physiotherapeut lege ich grossen Wert auf eine persönliche, individuelle und\nzielgerichtete Behandlung. Gemeinsam mit Ihnen analysiere ich Ihre Beschwerden und\nerarbeite einen Therapieplan, der auf Ihre persönlichen Bedürfnisse und Ziele abgestimmt\nist.",
     bioParagraph2: "Meine Behandlung verbindet aktive Rehabilitation, manuelle therapeutische Massnahmen,\nBewegungsförderung und gezieltes Training.\nMein Ziel ist es, Ihre Beweglichkeit und körperliche Funktion zu verbessern, Beschwerden\nzu reduzieren und Ihnen mehr Sicherheit und Selbstständigkeit im Alltag zu ermöglichen.",
     education: "Hier sollte die Berufsbezeichnung genau so angegeben werden, wie sie auf Ihrer Schweizer Anerkennung bzw. Ihrem Diplom bestätigt ist. Wenn Ihr ausländischer Physiotherapieabschluss durch das SRK anerkannt wurde, empfiehlt sich beispielsweise eine sachliche Formulierung wie: Physiotherapeut, in der Schweiz SRK-anerkannt. Eine Institution wie ZHAW sollte nur genannt werden, wenn dort tatsächlich ein entsprechender Abschluss oder eine Weiterbildung absolviert wurde",

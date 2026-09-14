@@ -117,7 +117,7 @@ const INITIAL_SPECIALISTS: Physiotherapist[] = [
   {
     id: "doc-1",
     name: "Vigan Musliu",
-    title: "Dipl. Physiotherapeut & Praxisleiter",
+    title: "Dipl. Physiotherapeut & Inhaber",
     credentials: [
       "Dipl. Physiotherapeut",
       "SRK Anerkannt (Schweizerisches Rotes Kreuz)",
