@@ -21,7 +21,11 @@ import {
   Layout,
   CalendarCheck,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Copy,
+  Download,
+  Cloud,
+  Sparkles
 } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 
@@ -46,6 +50,7 @@ export const PraxisCmsModal: React.FC = () => {
 
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [newSpecialty, setNewSpecialty] = useState('');
+  const [copiedJson, setCopiedJson] = useState(false);
 
   // Local state for PIN change
   const [currentPinInput, setCurrentPinInput] = useState('');
@@ -53,6 +58,33 @@ export const PraxisCmsModal: React.FC = () => {
   const [pinChangeStatus, setPinChangeStatus] = useState<string | null>(null);
 
   if (!isCmsModalOpen) return null;
+
+  const handleCopyJson = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(content, null, 2));
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 3000);
+    } catch {
+      // Fallback
+      setNotification({ message: 'Kopieren fehlgeschlagen. Bitte manuell markieren.', type: 'error' });
+    }
+  };
+
+  const handleDownloadBackup = () => {
+    try {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(content, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `lebenswerk-site-content-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setNotification({ message: 'Backup-Datei erfolgreich heruntergeladen!', type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+    } catch {
+      setNotification({ message: 'Download fehlgeschlagen.', type: 'error' });
+    }
+  };
 
   const handleSave = async () => {
     const res = await saveToServer();
@@ -1079,6 +1111,70 @@ export const PraxisCmsModal: React.FC = () => {
                     PIN speichern
                   </button>
                 </form>
+
+                {/* Cloud & AI Sync Card */}
+                <div className="pt-4 border-t border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-[#1B5E20]">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-slate-800">
+                        Übergabe an den KI-Entwickler & Cloud-Backup
+                      </h5>
+                      <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                        <Cloud className="w-3 h-3" /> Live mit Google Cloud Firestore verbunden
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 text-xs space-y-2 text-slate-700">
+                    <p className="font-bold text-[#1B5E20]">
+                      Wie erfährt die KI in AI Studio von Ihren Website-Änderungen?
+                    </p>
+                    <ol className="list-decimal pl-4 space-y-1.5 text-slate-600">
+                      <li>
+                        <strong className="text-slate-800">Methode 1 (Einfachste Methode):</strong> Sobald Sie im CMS auf «Speichern» klicken, liegen Ihre Texte in der Cloud. Wenn Sie im AI Studio Chat sind, schreiben Sie der KI einfach:
+                        <div className="mt-1 bg-white p-2 rounded-lg border border-emerald-200 font-mono text-[11px] text-[#1B5E20] font-semibold select-all">
+                          «Bitte lies meine aktuellen Texte aus Firestore aus und sichere sie fest im Quellcode.»
+                        </div>
+                        Die KI greift direkt auf Ihre Firestore-Datenbank zu und aktualisiert das Projekt.
+                      </li>
+                      <li>
+                        <strong className="text-slate-800">Methode 2 (Direkt-Export):</strong> Klicken Sie unten auf «JSON kopieren» oder «Backup herunterladen» und fügen Sie den Text oder die Datei direkt in den Chat ein.
+                      </li>
+                    </ol>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyJson}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-[#1B5E20] hover:text-[#1B5E20] text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                      >
+                        {copiedJson ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">Inhalte kopiert!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-slate-500" />
+                            <span>JSON in Zwischenablage kopieren</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDownloadBackup}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-[#1B5E20] hover:text-[#1B5E20] text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                      >
+                        <Download className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Backup (.json) herunterladen</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="pt-4 border-t border-slate-200 space-y-2">
                   <h5 className="text-xs font-bold text-slate-800">
