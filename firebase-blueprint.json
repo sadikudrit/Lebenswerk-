@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "SiteContent": {
+      "title": "SiteContent",
+      "description": "The global website content and sections for LEBENSWERK Physiotherapie",
+      "type": "object",
+      "properties": {
+        "hero": { "type": "object", "description": "Hero section content" },
+        "doctor": { "type": "object", "description": "Doctor profile content" },
+        "contact": { "type": "object", "description": "Contact info and hours" },
+        "announcement": { "type": "object", "description": "Announcement banner data" },
+        "footer": { "type": "object", "description": "Footer content" },
+        "lastUpdated": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["hero", "doctor", "contact", "lastUpdated"]
+    }
+  },
+  "firestore": {
+    "/cms_content/{documentId}": {
+      "schema": "SiteContent",
+      "description": "Contains the published site content for LEBENSWERK"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /cms_content/{documentId} {
+      // Any visitor on any device can read the published site content
+      allow read: if isValidId(documentId);
+      
+      // CMS updates published content
+      allow create, update: if isValidId(documentId)
+        && request.resource.data.size() <= 30
+        && request.resource.data.lastUpdated is string
+        && request.resource.data.lastUpdated.size() <= 64;
+      allow delete: if false;
+    }
+
+    match /inquiries/{inquiryId} {
+      allow read: if true;
+      allow create: if isValidId(inquiryId)
+        && request.resource.data.keys().hasAll(['firstName', 'phone', 'email', 'createdAt'])
+        && request.resource.data.firstName is string && request.resource.data.firstName.size() <= 100
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 40
+        && request.resource.data.email is string && request.resource.data.email.size() <= 120;
+      allow update, delete: if false;
+    }
+  }
+}

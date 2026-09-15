@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-remixphysiothera-22b9afc2-e4c2-4348-9684-6790d496e88d",
+      "rules": "firestore.rules"
+    }
+  ]
+}
